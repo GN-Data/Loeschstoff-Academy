@@ -1,11 +1,13 @@
 /**
- * Hauptanwendungslogik – Feuerwehr Prüfungs- & Ausbildungs-Trainer
+ * LÖSCHSTOFF ACADEMY – Hauptanwendungslogik
+ * Wissen. Trainieren. Einsatzbereit.
+ * Entwickelt von Nico Galicki
  */
 
 class FeuerwehrApp {
   constructor() {
     this.storage = window.appStorage;
-    this.currentTab = 'home'; // 'home' | 'stats' | 'profiles' | 'dev' | 'install'
+    this.currentTab = 'home'; // 'home' | 'docs' | 'stats' | 'profiles' | 'admin' | 'dev' | 'install'
     this.selectedCatalogId = (this.storage.getCatalogs()[0]?.id) || 'mta-zwischenpruefung';
 
     // Practice configuration state
@@ -21,12 +23,15 @@ class FeuerwehrApp {
     this.lastResult = null;
     this.resultFilter = 'all'; // 'all' | 'wrong' | 'correct'
 
-    // Developer area state
+    // Role, Admin & Developer state
+    this.adminVisible = false;
+    this.adminUnlocked = false;
     this.devVisible = false;
     this.devUnlocked = false;
     this.devEditingCatalogId = this.selectedCatalogId;
     this.devEditingQuestionIdx = null; // null | 'new' | index
     this.devSearchQuery = '';
+    this.urlInviteToken = '';
     this.logoClickCounter = 0;
     this.logoClickTimer = null;
 
@@ -49,11 +54,24 @@ class FeuerwehrApp {
       } catch (_) {}
     }
 
-    // URL-Check: Wenn ?dev=1 oder #dev aufgerufen wird, Entwicklermodus einblenden
+    // URL-Check für Einladungstoken, Entwickler- oder Admin-Modus
     try {
       const urlParams = new URLSearchParams(window.location.search);
-      if (urlParams.get('dev') === '1' || window.location.hash === '#dev') {
+      const hash = window.location.hash || '';
+
+      // Token aus URL (?token=xyz oder ?invite=xyz oder #token=xyz)
+      let t = urlParams.get('token') || urlParams.get('invite');
+      if (!t && hash.startsWith('#token=')) t = hash.replace('#token=', '').split('&')[0];
+      if (!t && hash.startsWith('#invite=')) t = hash.replace('#invite=', '').split('&')[0];
+      if (t) {
+        this.urlInviteToken = t.trim();
+      }
+
+      if (urlParams.get('dev') === '1' || hash === '#dev') {
         this.devVisible = true;
+      }
+      if (urlParams.get('admin') === '1' || hash === '#admin') {
+        this.adminVisible = true;
       }
     } catch (_) {}
 
@@ -68,8 +86,6 @@ class FeuerwehrApp {
       this.selectedCatalogId = this.storage.getCatalogs()[0]?.id || '';
     }
 
-    // Falls noch gar kein Profil existiert, legen wir noch keins stumm an,
-    // sondern zeigen auf Wunsch sofort das Profil-Popup oder einen Schnellstart.
     this.render();
   }
 
@@ -109,16 +125,10 @@ class FeuerwehrApp {
 
     if (this.logoClickCounter >= 5) {
       this.logoClickCounter = 0;
-      this.devVisible = !this.devVisible;
-      if (this.devVisible) {
-        alert('🔓 Entwickler-Bereich wurde freigeschaltet!');
-        this.switchTab('dev');
-      } else {
-        alert('🔒 Entwickler-Bereich wurde ausgeblendet.');
-        this.devUnlocked = false;
-        if (this.currentTab === 'dev') this.switchTab('home');
-        else this.render();
-      }
+      this.adminVisible = true;
+      this.devVisible = true;
+      alert('🔓 Admin- & Entwickler-Optionen in der Navigation freigeschaltet!');
+      this.switchTab('admin');
     }
   }
 
@@ -205,6 +215,76 @@ class FeuerwehrApp {
     this.render();
   }
 
+  // ==================== ZUGANGSSCHUTZ / LOCK SCREEN (NUR 1 PIN-FELD) ====================
+
+  renderLockScreen() {
+    const appConfig = this.storage.getAppConfig();
+    const fwName = appConfig.feuerwehrName || 'Freiwillige Feuerwehr';
+    const hasToken = Boolean(this.urlInviteToken);
+
+    return `
+      <div style="min-height:100vh; display:flex; align-items:center; justify-content:center; padding:20px; background:linear-gradient(135deg, #0F172A 0%, #1E293B 100%);">
+        <div class="card" style="max-width:440px; width:100%; border:1px solid rgba(255,255,255,0.15); box-shadow:0 14px 40px rgba(0,0,0,0.55); text-align:center; padding:32px 24px;">
+          <img src="assets/app-logo.jpg" alt="LÖSCHSTOFF ACADEMY Logo"
+               style="width:84px; height:84px; border-radius:20px; object-fit:cover; margin:0 auto 14px auto; box-shadow:0 6px 20px rgba(198,40,40,0.35); border:2px solid var(--border-color); display:block;" />
+
+          <div style="font-size:0.75rem; font-weight:800; text-transform:uppercase; letter-spacing:0.08em; color:var(--fw-red); margin-bottom:4px;">
+            🚒 ${this.escapeHtml(fwName)}
+          </div>
+          <h1 style="font-size:1.4rem; font-weight:900; margin:0 0 4px 0; letter-spacing:0.03em; color:var(--text-main);">
+            LÖSCHSTOFF <span style="color:var(--fw-red);">ACADEMY</span>
+          </h1>
+          <div style="font-size:0.72rem; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:var(--text-muted); margin-bottom:18px;">
+            Wissen. Trainieren. Einsatzbereit.
+          </div>
+
+          <div style="background:var(--bg-subtle); border-radius:12px; padding:14px; text-align:left; font-size:0.86rem; line-height:1.45; color:var(--text-main); margin-bottom:20px; border:1px solid var(--border-color);">
+            ${hasToken
+              ? `🔒 <strong>Einladungslink erkannt:</strong><br/>Bitte gib die 4-stellige Zugangs-PIN ein, um die App auf diesem Gerät dauerhaft freizuschalten (funktioniert danach auch komplett offline).`
+              : `🔒 <strong>Geschützter App-Zugang:</strong><br/>Bitte gib die Zugangs-PIN oder die Admin-/Entwickler-PIN ein:`}
+          </div>
+
+          <form onsubmit="event.preventDefault(); app.submitLockPin();">
+            <div class="input-group" style="text-align:left; margin-bottom:18px;">
+              <label style="text-align:center; display:block; font-weight:700;">PIN eingeben</label>
+              <input type="password" id="lock-pin-input" class="form-input"
+                     placeholder="PIN"
+                     autocomplete="off" maxlength="10" style="font-weight:900; font-size:1.3rem; text-align:center; letter-spacing:0.25em; padding:12px;" required autofocus />
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-block" style="padding:13px; font-size:1rem; font-weight:800;">
+              🔓 App freischalten & starten
+            </button>
+          </form>
+        </div>
+      </div>
+    `;
+  }
+
+  submitLockPin() {
+    const pin = document.getElementById('lock-pin-input')?.value.trim();
+    if (!pin) {
+      alert('Bitte gib eine PIN ein.');
+      return;
+    }
+    const res = this.storage.authorizeDevice(pin, this.urlInviteToken);
+    if (res.success) {
+      if (res.role === 'dev') {
+        this.devUnlocked = true;
+        this.devVisible = true;
+        this.adminUnlocked = true;
+        this.adminVisible = true;
+      } else if (res.role === 'admin') {
+        this.adminUnlocked = true;
+        this.adminVisible = true;
+      }
+      alert('Erfolgreich freigeschaltet! Willkommen bei der LÖSCHSTOFF ACADEMY.');
+      this.render();
+    } else {
+      alert(res.error || 'Falsche PIN!');
+    }
+  }
+
   // ==================== START PRACTICE OR EXAM ====================
 
   startPractice(customQuestions = null, customLabel = null) {
@@ -245,17 +325,15 @@ class FeuerwehrApp {
       modeLabel = `Alle Fragen (1–${catalog.questions.length})`;
     }
 
-    // Questions are always shuffled in practice mode according to requirements
     pool = this.shuffleArray(pool);
 
-    // Prepare session items with shuffled answer slots (A, B, C, D...)
     const items = pool.map(q => {
       const shuffledAnswers = this.shuffleArray(
         q.answers.map((a, idx) => ({
           id: 'ans_' + idx,
           text: a.text,
           isCorrect: Boolean(a.isCorrect),
-          clicked: false // For practice mode immediate click tracking
+          clicked: false
         }))
       );
       return {
@@ -302,7 +380,6 @@ class FeuerwehrApp {
     const passPercentage = Number(catalog.examConfig?.passPercentage) || 75;
     const timeLimitMinutes = Number(catalog.examConfig?.timeLimitMinutes) || 0;
 
-    // Zufällige Fragen aus dem Fragenkatalog ziehen
     const randomQuestions = this.shuffleArray(catalog.questions).slice(0, desiredCount);
 
     const items = randomQuestions.map(q => {
@@ -311,7 +388,7 @@ class FeuerwehrApp {
           id: 'ans_' + idx,
           text: a.text,
           isCorrect: Boolean(a.isCorrect),
-          selected: false // For exam mode checkbox selection
+          selected: false
         }))
       );
       return {
@@ -379,15 +456,13 @@ class FeuerwehrApp {
     if (!ans) return;
 
     if (this.session.mode === 'practice') {
-      // Im Übungsmodus: Jede angeklickte Antwort wird sofort geprüft und optisch (grün/rot) markiert!
-      if (ans.clicked) return; // Bereits angeklickt
+      if (ans.clicked) return;
       ans.clicked = true;
 
       if (!ans.isCorrect) {
         currentItem.hadWrongClick = true;
       }
 
-      // Prüfen, ob jetzt ALLE richtigen Antworten dieser Frage ausgewählt wurden
       const allCorrectClicked = currentItem.answers
         .filter(a => a.isCorrect)
         .every(a => a.clicked);
@@ -406,7 +481,6 @@ class FeuerwehrApp {
 
       this.render();
     } else {
-      // Im Prüfungsmodus: Ankreuzbogen (Antworten frei an-/abwählbar, keine Sofort-Auswertung)
       ans.selected = !ans.selected;
       this.render();
     }
@@ -416,7 +490,6 @@ class FeuerwehrApp {
     if (!this.session) return;
     const item = this.session.items[this.session.currentIndex];
 
-    // Im Übungsmodus darf man erst weiter, wenn alle richtigen Antworten ausgewählt wurden!
     if (this.session.mode === 'practice' && !item.completed) {
       return;
     }
@@ -522,12 +595,9 @@ class FeuerwehrApp {
     let correctCount = 0;
 
     const evaluatedItems = this.session.items.map(item => {
-      // Eine Prüfungsfrage ist genau dann richtig, wenn alle richtigen Antworten
-      // angekreuzt wurden und keine falsche Antwort angekreuzt wurde.
       const isCorrect = item.answers.every(a => a.isCorrect === a.selected);
       if (isCorrect) correctCount++;
 
-      // Auch im Profil-Lernstand vermerken
       this.storage.recordQuestionResult(
         this.session.catalogId,
         item.questionNumber,
@@ -589,13 +659,17 @@ class FeuerwehrApp {
     this.startPractice(wrongQuestions, `Wiederholung (${wrongQuestions.length} falsche Fragen)`);
   }
 
-  // ==================== PROFILE MODALS ====================
+  // ==================== PROFILE MODAL (OHNE DIENSTGRAD) ====================
 
   openCreateProfileModal(isFirstProfile = false) {
     const modalRoot = document.getElementById('modal-root');
     if (!modalRoot) return;
 
-    let selectedColor = AVATAR_COLORS[this.storage.getProfiles().length % AVATAR_COLORS.length];
+    const AVATAR_COLORS = [
+      '#DC2626', '#EA580C', '#D97706', '#16A34A',
+      '#0284C7', '#2563EB', '#7C3AED', '#DB2777'
+    ];
+    let selectedColor = AVATAR_COLORS[Math.floor(Math.random() * AVATAR_COLORS.length)];
 
     const renderModal = () => {
       modalRoot.innerHTML = `
@@ -605,15 +679,10 @@ class FeuerwehrApp {
             <p style="margin:0 0 16px 0; font-size:0.86rem; color:var(--text-muted);">
               Lege dein persönliches Profil an, um deinen individuellen Lernfortschritt und deine Prüfungsergebnisse zu speichern.
             </p>
-            <div class="input-group" style="margin-bottom:12px;">
+            <div class="input-group" style="margin-bottom:14px;">
               <label>Dein Name / Vorname</label>
-              <input type="text" id="new-profile-name" class="form-input" placeholder="z. B. Max Mustermann" autofocus />
-            </div>
-            <div class="input-group" style="margin-bottom:12px;">
-              <label>Dienstgrad / Funktion (optional)</label>
-              <select id="new-profile-rank" class="form-select">
-                ${RANKS.map(r => `<option value="${this.escapeHtml(r)}">${this.escapeHtml(r)}</option>`).join('')}
-              </select>
+              <input type="text" id="new-profile-name" class="form-input" placeholder="z. B. Max Mustermann" autofocus
+                     onkeydown="if(event.key==='Enter') app.confirmCreateProfile()" />
             </div>
             <div class="input-group" style="margin-bottom:18px;">
               <label>Profilfarbe wählen</label>
@@ -642,16 +711,14 @@ class FeuerwehrApp {
 
   confirmCreateProfile() {
     const nameInput = document.getElementById('new-profile-name');
-    const rankSelect = document.getElementById('new-profile-rank');
     const name = nameInput?.value.trim();
     if (!name) {
       alert('Bitte gib einen Namen für das Profil ein.');
       nameInput?.focus();
       return;
     }
-    const rank = rankSelect?.value || RANKS[0];
-    const color = window._pickedProfileColor || AVATAR_COLORS[0];
-    this.storage.createProfile(name, rank, color);
+    const color = window._pickedProfileColor || '#DC2626';
+    this.storage.createProfile(name, color);
     this.closeModal();
     this.render();
   }
@@ -687,6 +754,12 @@ class FeuerwehrApp {
     this.applyTheme();
     const root = document.getElementById('app-root');
     if (!root) return;
+
+    // ZUGANGSKONTROLLE: Wenn das Gerät noch nicht autorisiert ist, Lock Screen anzeigen
+    if (!this.storage.isDeviceAuthorized()) {
+      root.innerHTML = this.renderLockScreen();
+      return;
+    }
 
     const activeProfile = this.storage.getActiveProfile();
     const appConfig = this.storage.getAppConfig();
@@ -743,7 +816,11 @@ class FeuerwehrApp {
       { id: 'profiles', icon: '👥', label: 'Profile' }
     ];
 
-    if (this.devVisible) {
+    if (this.adminVisible || this.adminUnlocked) {
+      tabs.push({ id: 'admin', icon: '🛡️', label: 'Admin' });
+    }
+
+    if (this.devVisible || this.devUnlocked) {
       tabs.push({ id: 'dev', icon: '⚙️', label: 'Entwickler' });
     }
 
@@ -777,6 +854,8 @@ class FeuerwehrApp {
         return this.renderStatsView();
       case 'profiles':
         return this.renderProfilesView();
+      case 'admin':
+        return this.renderAdminView();
       case 'dev':
         return this.renderDeveloperView();
       case 'install':
@@ -835,7 +914,7 @@ class FeuerwehrApp {
               </h2>
               <p style="margin:0; font-size:0.84rem; color:#CBD5E1; line-height:1.35;">
                 ${activeProfile
-                  ? `${this.escapeHtml(activeProfile.rank || 'Feuerwehrdienstleistende/r')} · Dein persönlicher Lernstand wird automatisch gespeichert.`
+                  ? 'Dein persönlicher Lernstand wird automatisch auf diesem Gerät gespeichert.'
                   : 'Lege jetzt dein persönliches Profil an, damit dein Lernfortschritt gespeichert wird.'}
               </p>
             </div>
@@ -856,7 +935,7 @@ class FeuerwehrApp {
       <div class="card">
         <div class="card-header">
           <div>
-            <h2 class="card-title">1. Fragebogen / Lehrgang wählen</h2>
+            <h2 class="card-title">1. Fragebogen wählen</h2>
             <p class="card-subtitle">Wähle den Fragenkatalog aus, für den du üben möchtest</p>
           </div>
           <span class="badge badge-slate">${catalogs.length} Kataloge</span>
@@ -920,7 +999,6 @@ class FeuerwehrApp {
                 Jede angetippte Antwort wird <strong>sofort grün oder rot</strong> ausgewertet. Der Weiter-Button erscheint erst, wenn alle richtigen Antworten gefunden wurden.
               </p>
 
-              <!-- Auswahl: Alle / Bereich (z.B. 11 bis 23) / Fehler -->
               <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:12px;">
                 <label class="catalog-item ${this.practiceModeType === 'all' ? 'selected' : ''}" style="padding:10px 12px;"
                        onclick="app.practiceModeType='all'; app.render();">
@@ -1038,11 +1116,9 @@ class FeuerwehrApp {
     const isPractice = s.mode === 'practice';
     const letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
 
-    // Zählen, wie viele richtige Antworten diese Frage insgesamt hat
     const totalCorrectAnswers = item.answers.filter(a => a.isCorrect).length;
     const foundCorrectAnswers = item.answers.filter(a => a.isCorrect && a.clicked).length;
     const remainingCorrect = totalCorrectAnswers - foundCorrectAnswers;
-
     const progressPct = Math.round(((s.currentIndex + 1) / total) * 100);
 
     return `
@@ -1069,12 +1145,10 @@ class FeuerwehrApp {
         `}
       </div>
 
-      <!-- Fortschrittsbalken -->
       <div class="progress-bar-track" style="height:6px; margin-bottom:12px;">
         <div style="background:${isPractice ? '#16A34A' : 'var(--fw-red)'}; width:${progressPct}%; height:100%; transition:width 0.2s ease;"></div>
       </div>
 
-      <!-- Im Prüfungsmodus: Fragen-Schnellnavigation 1..50 -->
       ${!isPractice ? `
         <div class="exam-nav-strip">
           ${s.items.map((it, idx) => {
@@ -1091,7 +1165,6 @@ class FeuerwehrApp {
         </div>
       ` : ''}
 
-      <!-- FRAGEN-KARTE -->
       <div class="question-card">
         <div class="question-meta-row">
           <span class="question-number-tag">Katalog-Frage Nr. ${item.questionNumber}</span>
@@ -1108,13 +1181,11 @@ class FeuerwehrApp {
           </div>
         ` : ''}
 
-        <!-- ANTWORT-SLOTS (Zufällig gemischt auf A, B, C, D...) -->
         <div class="answers-list">
           ${item.answers.map((ans, idx) => {
             const letter = letters[idx] || String(idx + 1);
 
             if (isPractice) {
-              // ÜBUNGSMODUS: Sofort grün oder rot beim Anklicken!
               let stateClass = '';
               let statusHtml = '<span style="color:#94A3B8; font-size:0.8rem;">Antippen</span>';
 
@@ -1141,7 +1212,6 @@ class FeuerwehrApp {
                 </button>
               `;
             } else {
-              // PRÜFUNGSMODUS: Neutraler Ankreuzbogen [X] ohne Sofort-Verraten
               const selClass = ans.selected ? 'exam-selected' : '';
               return `
                 <button type="button"
@@ -1156,7 +1226,6 @@ class FeuerwehrApp {
           }).join('')}
         </div>
 
-        <!-- ÜBUNGSMODUS: Hinweis & Weiter-Button erst wenn ALLE richtigen Antworten ausgewählt wurden! -->
         ${isPractice ? `
           ${item.completed ? `
             ${item.explanation ? `
@@ -1178,7 +1247,6 @@ class FeuerwehrApp {
             </div>
           `}
         ` : `
-          <!-- PRÜFUNGSMODUS NAVIGATION -->
           <div style="display:flex; gap:10px; margin-top:18px;">
             <button class="btn btn-outline" style="flex:1"
                     ${s.currentIndex === 0 ? 'disabled' : ''}
@@ -1258,7 +1326,6 @@ class FeuerwehrApp {
         ` : ''}
       </div>
 
-      <!-- DETAIL-AUSWERTUNG ALLER FRAGEN -->
       <div class="card">
         <div class="card-header">
           <h3 class="card-title">Einzelauswertung der Fragen</h3>
@@ -1362,7 +1429,7 @@ class FeuerwehrApp {
         <div class="card-header">
           <div>
             <h2 class="card-title">📊 Statistik für ${this.escapeHtml(profile.name)}</h2>
-            <p class="card-subtitle">${this.escapeHtml(profile.rank)}</p>
+            <p class="card-subtitle">Persönlicher Lernfortschritt & Prüfungsergebnisse</p>
           </div>
           <select class="form-select" style="width:auto; font-weight:700; font-size:0.85rem;"
                   onchange="app.selectCatalog(this.value)">
@@ -1415,7 +1482,6 @@ class FeuerwehrApp {
         </div>
       </div>
 
-      <!-- VERLAUF DER LETZTEN PRÜFUNGEN & ÜBUNGEN -->
       <div class="card">
         <div class="card-header">
           <h3 class="card-title">🕓 Letzte Prüfungen & Übungen</h3>
@@ -1426,7 +1492,7 @@ class FeuerwehrApp {
           </p>
         ` : `
           <div style="display:flex; flex-direction:column; gap:10px;">
-            ${stats.history.slice(0, 20).map((h, idx) => `
+            ${stats.history.slice(0, 20).map((h) => `
               <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; padding:12px; border-radius:var(--radius-md); border:1px solid var(--border-color); background:var(--bg-subtle);">
                 <div>
                   <div style="display:flex; align-items:center; gap:6px; margin-bottom:3px;">
@@ -1470,7 +1536,7 @@ class FeuerwehrApp {
     }
   }
 
-  // ==================== VIEW 5: PROFILE VERWALTEN ====================
+  // ==================== VIEW 5: PROFILE VERWALTEN (OHNE DIENSTGRAD) ====================
 
   renderProfilesView() {
     const profiles = this.storage.getProfiles();
@@ -1478,12 +1544,11 @@ class FeuerwehrApp {
     const defaultCatId = this.selectedCatalogId;
 
     return `
-      <!-- DARSTELLUNG: HELL / DUNKEL / AUTOMATISCH -->
       <div class="card">
         <div class="card-header" style="margin-bottom:4px;">
           <div>
             <h2 class="card-title">🎨 Darstellung & Design-Modus</h2>
-            <p class="card-subtitle">Wähle zwischen hellem Design, dunklem Nachtmodus oder automatischer System-Anpassung</p>
+            <p class="card-subtitle">Wähle zwischen hellem Design, dunklem Nachtmodus oder automatischer Anpassung</p>
           </div>
           ${this.renderThemeSelectorBar()}
         </div>
@@ -1525,7 +1590,7 @@ class FeuerwehrApp {
                       ${isAct ? '<span class="badge badge-green" style="margin-left:6px;">Aktiv</span>' : ''}
                     </div>
                     <div class="catalog-meta">
-                      ${this.escapeHtml(p.rank)} · Lernstand: ${pStats.masteredPercent}% (${pStats.masteredCount}/${pStats.totalQuestions}) · Prüfungen: ${pStats.examsCount}
+                      Lernstand: ${pStats.masteredPercent}% (${pStats.masteredCount}/${pStats.totalQuestions}) · Prüfungen: ${pStats.examsCount}
                     </div>
                   </div>
                   <button class="btn btn-danger-outline btn-sm"
@@ -1541,20 +1606,144 @@ class FeuerwehrApp {
     `;
   }
 
-  // ==================== VIEW 6: ENTWICKLER-BEREICH (ADMIN / EDITOR / IMPORT) ====================
+  // ==================== VIEW 6: ADMIN-BEREICH (NUR EINLADUNGSLINKS & ADMIN-PIN) ====================
+
+  renderAdminView() {
+    if (!this.adminUnlocked && !this.devUnlocked) {
+      return `
+        <div class="card" style="max-width:440px; margin:20px auto; text-align:center;">
+          <div style="font-size:2.5rem; margin-bottom:8px;">🛡️</div>
+          <h2 class="card-title">Admin-Bereich</h2>
+          <p class="card-subtitle" style="margin-bottom:16px;">
+            Hier kannst du Einladungslinks und PINs für den App-Zugang erstellen und verwalten.
+          </p>
+          <div class="input-group" style="text-align:left; margin-bottom:14px;">
+            <label>Admin-PIN eingeben</label>
+            <input type="password" id="admin-pin-input" class="form-input" placeholder="Admin-PIN (Standard: 1122)"
+                   onkeydown="if(event.key==='Enter') app.unlockAdminArea()" />
+          </div>
+          <button class="btn btn-primary btn-block" onclick="app.unlockAdminArea()">
+            Admin-Bereich entsperren
+          </button>
+          <div style="margin-top:14px; text-align:center;">
+            <button class="btn btn-outline btn-sm" onclick="app.resetAdminPinPrompt()" style="font-size:0.75rem; color:var(--text-muted);">
+              PIN vergessen?
+            </button>
+          </div>
+        </div>
+      `;
+    }
+
+    const invites = this.storage.getInvites();
+
+    return `
+      <!-- TOP BAR ADMIN -->
+      <div class="card" style="background:linear-gradient(135deg, #1E293B 0%, #0F172A 100%); color:#FFF; border:none;">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+          <div>
+            <span class="badge" style="background:var(--fw-gold); color:#0F172A; margin-bottom:4px; font-weight:800;">🛡️ Admin-Bereich</span>
+            <h2 style="margin:0; font-size:1.15rem;">Zugangslinks & PIN-Verwaltung</h2>
+          </div>
+          <div style="display:flex; gap:8px;">
+            <button class="btn btn-outline btn-sm" style="color:#FFF; border-color:rgba(255,255,255,0.3);" onclick="app.adminUnlocked=false; app.render();">
+              🔒 Sperren
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 1. EINLADUNGSLINKS FÜR APP-ZUGANG -->
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <h3 class="card-title">🎟 Einladungslinks für App-Zugang</h3>
+            <p class="card-subtitle">
+              Generiere Zugangslinks für deine Feuerwehr-Kameraden. Kopiere den Link zusammen mit der PIN und sende ihn weiter. Beim ersten Öffnen tippt der Nutzer die PIN ein und hat vollen Zugriff auf die gesamte App (auch 100% offline).
+            </p>
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="app.openCreateInviteModal()">
+            + Neuen Zugangslink erstellen
+          </button>
+        </div>
+
+        ${invites.length === 0 ? `
+          <div style="text-align:center; padding:24px 16px; background:var(--bg-subtle); border-radius:var(--radius-md); border:1px dashed var(--input-border);">
+            <p style="margin:0 0 12px 0; color:var(--text-muted); font-size:0.9rem;">
+              Noch keine Zugangslinks erstellt. Klicke auf den Button, um den ersten Link mit PIN zu generieren.
+            </p>
+            <button class="btn btn-primary" onclick="app.openCreateInviteModal()">
+              + Jetzt ersten Einladungslink generieren
+            </button>
+          </div>
+        ` : `
+          <div style="display:flex; flex-direction:column; gap:12px;">
+            ${invites.map(inv => `
+              <div style="display:flex; align-items:center; justify-content:space-between; gap:14px; padding:14px 16px; border-radius:var(--radius-md); border:1.5px solid var(--border-color); background:var(--bg-subtle); flex-wrap:wrap;">
+                <div style="flex:1; min-width:200px;">
+                  <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
+                    <span style="font-size:0.8rem; font-weight:800; color:var(--text-muted); text-transform:uppercase;">Zugangs-PIN:</span>
+                    <span class="badge badge-green" style="font-size:1.1rem; font-weight:900; letter-spacing:0.12em; padding:4px 12px;">
+                      ${this.escapeHtml(inv.pin)}
+                    </span>
+                  </div>
+                  <div style="font-size:0.78rem; color:var(--text-muted);">
+                    Erstellt am ${this.formatDate(inv.createdAt)}
+                  </div>
+                </div>
+
+                <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                  <button class="btn btn-primary btn-sm" onclick="app.copyInviteWithPin('${this.escapeHtml(inv.token)}', '${this.escapeHtml(inv.pin)}')">
+                    📋 Link + PIN kopieren
+                  </button>
+                  <button class="btn btn-outline btn-sm" onclick="app.copyInviteOnlyLink('${this.escapeHtml(inv.token)}')">
+                    🔗 Nur Link kopieren
+                  </button>
+                  <button class="btn btn-danger-outline btn-sm" onclick="app.deleteInvite('${this.escapeHtml(inv.id)}')">
+                    🗑
+                  </button>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        `}
+      </div>
+
+      <!-- 2. ADMIN-PIN ÄNDERN -->
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <h3 class="card-title">🔑 Admin-PIN ändern</h3>
+            <p class="card-subtitle">PIN zum Entsperren dieses Admin-Bereichs (Standard: 1122)</p>
+          </div>
+        </div>
+        <div style="display:flex; align-items:flex-end; gap:10px; flex-wrap:wrap;">
+          <div class="input-group" style="flex:1; min-width:200px;">
+            <label>Neue Admin-PIN</label>
+            <input type="text" id="admin-new-pin" class="form-input" placeholder="Neue PIN"
+                   value="${this.escapeHtml(this.storage.getAdminPin())}" />
+          </div>
+          <button class="btn btn-navy btn-sm" onclick="app.saveNewAdminPin()">
+            PIN speichern
+          </button>
+        </div>
+      </div>
+    `;
+  }
+
+  // ==================== VIEW 7: ENTWICKLER-BEREICH (ROOT / CODE / EXPORT) ====================
 
   renderDeveloperView() {
     if (!this.devUnlocked) {
       return `
-        <div class="card" style="max-width:460px; margin:20px auto; text-align:center;">
-          <div style="font-size:2.5rem; margin-bottom:8px;">🔐</div>
-          <h2 class="card-title">Entwickler- & Ausbilder-Bereich</h2>
+        <div class="card" style="max-width:440px; margin:20px auto; text-align:center;">
+          <div style="font-size:2.5rem; margin-bottom:8px;">⚙️</div>
+          <h2 class="card-title">Entwickler-Bereich (Root)</h2>
           <p class="card-subtitle" style="margin-bottom:16px;">
-            Hier kannst du neue Fragebögen hochladen (Excel .xlsx, CSV, JSON), Fragen bearbeiten und die Prüfungsbedingungen (z. B. 50 Zufallsfragen, 75% Bestehensgrenze) für jeden Fragebogen jederzeit konfigurieren.
+            Entwickler-Werkzeuge für Fragebögen, Dokumente, Startseiten-Wappen, Code-Synchronisation und Git-Export.
           </p>
           <div class="input-group" style="text-align:left; margin-bottom:14px;">
             <label>Entwickler-PIN eingeben</label>
-            <input type="password" id="dev-pin-input" class="form-input" placeholder="PIN eingeben"
+            <input type="password" id="dev-pin-input" class="form-input" placeholder="PIN eingeben (Standard: 1120)"
                    onkeydown="if(event.key==='Enter') app.unlockDevArea()" />
           </div>
           <button class="btn btn-primary btn-block" onclick="app.unlockDevArea()">
@@ -1588,37 +1777,38 @@ class FeuerwehrApp {
       <div class="card" style="background:linear-gradient(135deg, #1E293B 0%, #0F172A 100%); color:#FFF; border:none;">
         <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
           <div>
-            <span class="badge" style="background:var(--fw-gold); color:#0F172A; margin-bottom:4px;">⚙️ Entwickler-Modus aktiv</span>
-            <h2 style="margin:0; font-size:1.15rem;">Fragebögen & App-Einstellungen</h2>
+            <span class="badge" style="background:#38BDF8; color:#0F172A; margin-bottom:4px; font-weight:800;">⚙️ Entwickler-Modus aktiv</span>
+            <h2 style="margin:0; font-size:1.15rem;">Code-Verwaltung & Inhalte pflegen</h2>
           </div>
           <div style="display:flex; gap:8px; flex-wrap:wrap;">
-            <button class="btn btn-outline btn-sm" onclick="app.downloadCatalogsJson()">
+            <button class="btn btn-primary btn-sm" onclick="app.downloadCatalogsJson()">
               💾 frageboegen.json exportieren
             </button>
-            <button class="btn btn-outline btn-sm" onclick="app.devUnlocked=false; app.render();">
+            <button class="btn btn-outline btn-sm" style="color:#FFF; border-color:rgba(255,255,255,0.3);" onclick="app.devUnlocked=false; app.render();">
               🔒 Sperren
             </button>
           </div>
         </div>
       </div>
 
-      <!-- APP-EINSTELLUNGEN: EIGENES LOGO HOCHLADEN & PIN ÄNDERN -->
+      <!-- 1. STARTSEITEN-BANNER (LOGO & NAME) -->
       <div class="card">
         <div class="card-header">
           <div>
-            <h3 class="card-title">⚙️ App-Einstellungen (Eigenes Startseiten-Logo & Entwickler-PIN)</h3>
-            <p class="card-subtitle">Das feste App-Logo sitzt oben links in der Kopfzeile – dein eigenes Feuerwehr-Logo/Wappen wird prominent oben im Startseiten-Banner angezeigt</p>
+            <h3 class="card-title">🚒 1. Feuerwehr-Wappen & Name auf Startseite</h3>
+            <p class="card-subtitle">Personalisiere das Startseiten-Banner für die Feuerwehr</p>
           </div>
         </div>
+
         <div style="display:flex; align-items:center; gap:16px; flex-wrap:wrap; margin-bottom:16px; padding-bottom:14px; border-bottom:1px solid var(--border-color);">
           <img src="${this.escapeHtml(this.storage.getAppConfig().logo || 'assets/app-logo.jpg')}"
                alt="Vorschau Startseiten-Logo"
-               style="width:64px; height:64px; border-radius:14px; object-fit:contain; background:var(--bg-subtle); padding:4px; border:2px solid var(--border-color); box-shadow:0 2px 6px rgba(0,0,0,0.15);" />
+               style="width:68px; height:68px; border-radius:14px; object-fit:contain; background:var(--bg-subtle); padding:4px; border:2px solid var(--border-color); box-shadow:0 2px 6px rgba(0,0,0,0.15);" />
           <div style="flex:1; min-width:200px;">
             <label style="font-size:0.8rem; font-weight:700; color:var(--text-muted); display:block; margin-bottom:4px;">
-              Eigenes Feuerwehr-Logo / Wappen für die Startseite hochladen (.png, .svg, .jpg)
+              Eigenes Feuerwehr-Logo / Wappen hochladen (.png, .svg, .jpg)
             </label>
-            <input type="file" id="dev-logo-input" accept="image/*" class="form-input" style="padding:6px;"
+            <input type="file" id="admin-logo-input" accept="image/*" class="form-input" style="padding:6px;"
                    onchange="app.handleLogoUpload(this.files[0])" />
           </div>
           <button class="btn btn-outline btn-sm" onclick="app.storage.setAppLogo('assets/app-logo.jpg'); app.render();">
@@ -1626,40 +1816,25 @@ class FeuerwehrApp {
           </button>
         </div>
 
-        <!-- FEUERWEHR-NAME AUF DER STARTSEITE -->
-        <div style="display:flex; align-items:flex-end; gap:10px; flex-wrap:wrap; margin-bottom:16px; padding-bottom:14px; border-bottom:1px solid var(--border-color);">
+        <div style="display:flex; align-items:flex-end; gap:10px; flex-wrap:wrap;">
           <div class="input-group" style="flex:1; min-width:200px;">
             <label>Name der Feuerwehr im Startseiten-Banner</label>
-            <input type="text" id="dev-fw-name" class="form-input" placeholder="z. B. Freiwillige Feuerwehr Musterstadt"
+            <input type="text" id="admin-fw-name" class="form-input" placeholder="z. B. Freiwillige Feuerwehr Musterstadt"
                    value="${this.escapeHtml(this.storage.getAppConfig().feuerwehrName || 'Freiwillige Feuerwehr')}" />
           </div>
           <button class="btn btn-navy btn-sm" onclick="app.saveFeuerwehrName()">
             Name speichern
           </button>
         </div>
-
-        <!-- PIN ÄNDERN -->
-        <div style="display:flex; align-items:flex-end; gap:10px; flex-wrap:wrap;">
-          <div class="input-group" style="flex:1; min-width:200px;">
-            <label>Entwickler-PIN ändern</label>
-            <input type="text" id="dev-new-pin" class="form-input" placeholder="Neue PIN (z. B. 1120)"
-                   value="${this.escapeHtml(this.storage.getDevPin())}" />
-          </div>
-          <button class="btn btn-navy btn-sm" onclick="app.saveNewDevPin()">
-            PIN speichern
-          </button>
-        </div>
       </div>
 
-      <!-- FRAGEBOGEN AUSWAHL & NEU ANLEGEN / IMPORTIEREN -->
+      <!-- 2. FRAGEBOGEN AUSWAHL & IMPORT -->
       <div class="card">
         <div class="card-header">
-          <h3 class="card-title">1. Fragebogen auswählen oder neu hinzufügen</h3>
-          <div style="display:flex; gap:8px;">
-            <button class="btn btn-primary btn-sm" onclick="app.openNewCatalogModal()">
-              + Neuer Fragebogen
-            </button>
-          </div>
+          <h3 class="card-title">2. Fragenkatalog auswählen oder neu hinzufügen</h3>
+          <button class="btn btn-primary btn-sm" onclick="app.openNewCatalogModal()">
+            + Neuer Fragebogen
+          </button>
         </div>
 
         <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:14px;">
@@ -1680,13 +1855,12 @@ class FeuerwehrApp {
           ` : ''}
         </div>
 
-        <!-- DATEI-IMPORT (EXCEL .XLSX / CSV / JSON) -->
         <div style="background:var(--bg-subtle); border:1.5px dashed var(--input-border); border-radius:var(--radius-md); padding:14px;">
           <div style="font-weight:800; font-size:0.9rem; margin-bottom:4px;">
-            📥 Fragen aus Datei hochladen (Excel .xlsx, CSV oder JSON)
+            📥 Fragen aus Datei importieren (Excel .xlsx, CSV oder JSON)
           </div>
           <p style="margin:0 0 10px 0; font-size:0.8rem; color:var(--text-muted);">
-            Lade eine Excel-Tabelle (<code>.xlsx</code>), eine <code>.csv</code>-Datei oder eine <code>.json</code>-Datei hoch, um Fragen direkt in diesen Fragebogen zu importieren.
+            Lade eine Excel-Tabelle (<code>.xlsx</code>), CSV oder JSON hoch, um Fragen in diesen Katalog zu importieren.
           </p>
           <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
             <input type="file" id="dev-file-import" accept=".xlsx,.csv,.json" class="form-input" style="flex:1; padding:7px;" />
@@ -1701,12 +1875,12 @@ class FeuerwehrApp {
       </div>
 
       ${editCat ? `
-        <!-- PRÜFUNGSBEDINGUNGEN KONFIGURIEREN -->
+        <!-- PRÜFUNGSBEDINGUNGEN -->
         <div class="card">
           <div class="card-header">
             <div>
-              <h3 class="card-title">2. Prüfungsbedingungen & Metadaten konfigurieren</h3>
-              <p class="card-subtitle">Diese Einstellungen gelten sofort für die Prüfungssimulation dieses Fragebogens</p>
+              <h3 class="card-title">3. Prüfungsbedingungen für „${this.escapeHtml(editCat.title)}“</h3>
+              <p class="card-subtitle">Gilt sofort für die Prüfungssimulation</p>
             </div>
           </div>
 
@@ -1726,21 +1900,21 @@ class FeuerwehrApp {
               <label style="color:var(--fw-red);">Anzahl Prüfungsfragen (Zufall)</label>
               <input type="number" id="dev-exam-count" class="form-input" min="1" max="500"
                      value="${editCat.examConfig?.questionCount || 50}" />
-              <span style="font-size:0.74rem; color:var(--text-muted);">z. B. 50 zufällige Fragen (aktuell ${editCat.questions.length} im Katalog)</span>
+              <span style="font-size:0.74rem; color:var(--text-muted);">z. B. 50 zufällige Fragen (aktuell ${editCat.questions.length})</span>
             </div>
 
             <div class="input-group">
-              <label style="color:var(--fw-red);">Bestehensgrenze in Prozent (%)</label>
+              <label style="color:var(--fw-red);">Bestehensgrenze (%)</label>
               <input type="number" id="dev-exam-pass" class="form-input" min="1" max="100"
                      value="${editCat.examConfig?.passPercentage || 75}" />
-              <span style="font-size:0.74rem; color:var(--text-muted);">z. B. 75 % richtige Antworten zum Bestehen</span>
+              <span style="font-size:0.74rem; color:var(--text-muted);">z. B. 75 % richtige Antworten</span>
             </div>
 
             <div class="input-group">
               <label style="color:var(--fw-red);">Zeitlimit in Minuten (0 = ohne)</label>
               <input type="number" id="dev-exam-time" class="form-input" min="0" max="300"
                      value="${editCat.examConfig?.timeLimitMinutes ?? 45}" />
-              <span style="font-size:0.74rem; color:var(--text-muted);">0 eingeben für unbegrenzte Prüfungszeit</span>
+              <span style="font-size:0.74rem; color:var(--text-muted);">0 für unbegrenzte Zeit</span>
             </div>
           </div>
 
@@ -1753,8 +1927,8 @@ class FeuerwehrApp {
         <div class="card">
           <div class="card-header">
             <div>
-              <h3 class="card-title">3. Fragenkatalog bearbeiten (${editCat.questions.length} Fragen)</h3>
-              <p class="card-subtitle">Klicke auf eine Frage zum Bearbeiten oder füge neue Fragen hinzu</p>
+              <h3 class="card-title">4. Fragenkatalog bearbeiten (${editCat.questions.length} Fragen)</h3>
+              <p class="card-subtitle">Klicke auf ✏️ zum Bearbeiten oder füge neue Fragen hinzu</p>
             </div>
             <button class="btn btn-success btn-sm" onclick="app.openQuestionModal(-1)">
               + Neue Frage hinzufügen
@@ -1797,25 +1971,15 @@ class FeuerwehrApp {
               `;
             }).join('')}
           </div>
-
-          <div style="margin-top:14px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
-            <button class="btn btn-danger-outline btn-sm"
-                    onclick="if(confirm('Alle lokalen Entwickler-Änderungen verwerfen und auf die Standard-Fragebögen aus dem Code zurücksetzen?')) { app.storage.resetCatalogsToDefault(); app.render(); }">
-              Auf Standard-Kataloge zurücksetzen
-            </button>
-            <button class="btn btn-outline btn-sm" onclick="app.downloadCatalogsJson()">
-              💾 Als frageboegen.json herunterladen
-            </button>
-          </div>
         </div>
       ` : ''}
 
-      <!-- DOKUMENTE & LERNMATERIAL VERWALTEN -->
+      <!-- 5. DOKUMENTE & LERNMATERIAL (PDF) -->
       <div class="card">
         <div class="card-header">
           <div>
-            <h3 class="card-title">4. Dokumente & Lernmaterial verwalten (${this.storage.getDocuments().length})</h3>
-            <p class="card-subtitle">Bestehende Dokumente bearbeiten, PDF-Dateien austauschen oder neue hinzufügen</p>
+            <h3 class="card-title">5. Dokumente & Lernmaterial verwalten (${this.storage.getDocuments().length})</h3>
+            <p class="card-subtitle">Bestehende PDFs austauschen, Merkblätter anpassen oder neue hinzufügen</p>
           </div>
           <button class="btn btn-success btn-sm" onclick="app.openDocumentModal(null)">
             + Neues Dokument
@@ -1835,7 +1999,7 @@ class FeuerwehrApp {
                 ${doc.description ? `<div style="font-size:0.8rem; color:var(--text-muted);">${this.escapeHtml(doc.description)}</div>` : ''}
               </div>
               <div style="display:flex; gap:6px; flex-shrink:0; align-items:center;">
-                <button class="btn btn-outline btn-sm" onclick="app.openDocumentModal('${this.escapeHtml(doc.id)}')" title="Titel, Text oder PDF-Datei ändern/austauschen">
+                <button class="btn btn-outline btn-sm" onclick="app.openDocumentModal('${this.escapeHtml(doc.id)}')">
                   ✏️ Ändern / Tauschen
                 </button>
                 <button class="btn btn-danger-outline btn-sm"
@@ -1847,7 +2011,221 @@ class FeuerwehrApp {
           `).join('')}
         </div>
       </div>
+
+      <!-- 6. CODE-SYNCHRONISATION & RESET -->
+      <div class="card">
+        <h3 class="card-title" style="margin-bottom:6px;">6. Quellcode-Synchronisation (Git frageboegen.json)</h3>
+        <p class="card-subtitle" style="margin-bottom:14px;">
+          Exportiere alle hier bearbeiteten Fragebögen als JSON, um sie direkt in das Git-Repository unter <code>data/frageboegen.json</code> einzupflegen.
+        </p>
+        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+          <button class="btn btn-primary" onclick="app.downloadCatalogsJson()">
+            💾 frageboegen.json exportieren
+          </button>
+          <button class="btn btn-danger-outline"
+                  onclick="if(confirm('Alle lokalen Änderungen verwerfen und auf die Standard-Kataloge aus dem Code zurücksetzen?')) { app.storage.resetCatalogsToDefault(); app.render(); }">
+            🔄 Auf Standard-Kataloge zurücksetzen
+          </button>
+        </div>
+      </div>
+
+      <!-- 7. PIN-VERWALTUNG & MASTER-RESET -->
+      <div class="card">
+        <h3 class="card-title" style="margin-bottom:6px;">7. Entwickler-PIN & Admin-Master-Reset</h3>
+        <p class="card-subtitle" style="margin-bottom:14px;">
+          Hier kannst du deine Entwickler-PIN ändern oder die Admin-PIN auf 1122 zurücksetzen.
+        </p>
+
+        <div style="display:flex; align-items:flex-end; gap:10px; flex-wrap:wrap; margin-bottom:16px;">
+          <div class="input-group" style="flex:1; min-width:200px;">
+            <label>Entwickler-PIN ändern (Standard: 1120)</label>
+            <input type="text" id="dev-new-pin" class="form-input"
+                   value="${this.escapeHtml(this.storage.getDevPin())}" />
+          </div>
+          <button class="btn btn-navy btn-sm" onclick="app.saveNewDevPin()">
+            Entwickler-PIN speichern
+          </button>
+        </div>
+
+        <div style="padding-top:14px; border-top:1px solid var(--border-color); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+          <div>
+            <div style="font-weight:700; font-size:0.9rem;">Admin-PIN zurücksetzen</div>
+            <div style="font-size:0.8rem; color:var(--text-muted);">Setzt die Admin-PIN sofort wieder auf den Standard 1122 zurück.</div>
+          </div>
+          <button class="btn btn-outline btn-sm" onclick="app.storage.setAdminPin('1122'); alert('Admin-PIN erfolgreich auf 1122 zurückgesetzt!'); app.render();">
+            Admin-PIN auf 1122 resetten
+          </button>
+        </div>
+      </div>
     `;
+  }
+
+  // ==================== INVITE ACTIONS (ADMIN) ====================
+
+  openCreateInviteModal() {
+    const modalRoot = document.getElementById('modal-root');
+    if (!modalRoot) return;
+    const randomPin = Math.floor(1000 + Math.random() * 9000).toString();
+
+    modalRoot.innerHTML = `
+      <div class="modal-backdrop" onclick="if(event.target===this) app.closeModal()">
+        <div class="modal-box" style="max-width:440px;">
+          <h3 style="margin:0 0 10px 0;">🎟 Neuen Zugangslink erstellen</h3>
+          <p style="font-size:0.84rem; color:var(--text-muted); margin:0 0 16px 0;">
+            Lege die 4-stellige Zugangs-PIN für diesen Link fest. Beim Öffnen des Links tippt der Nutzer diese PIN ein.
+          </p>
+
+          <div class="input-group" style="margin-bottom:18px;">
+            <label>4-stellige Zugangs-PIN</label>
+            <input type="text" id="invite-pin-input" class="form-input"
+                   placeholder="z. B. 4819" value="${randomPin}"
+                   maxlength="8" style="font-weight:900; font-size:1.3rem; text-align:center; letter-spacing:0.2em;" autofocus />
+          </div>
+
+          <div style="display:flex; gap:10px;">
+            <button class="btn btn-outline" style="flex:1" onclick="app.closeModal()">Abbrechen</button>
+            <button class="btn btn-primary" style="flex:2" onclick="app.confirmCreateInvite()">Link erstellen</button>
+          </div>
+        </div>
+      </div>
+    `;
+    setTimeout(() => document.getElementById('invite-pin-input')?.focus(), 50);
+  }
+
+  confirmCreateInvite() {
+    const pin = document.getElementById('invite-pin-input')?.value.trim();
+    if (!pin || pin.length < 4) {
+      alert('Bitte gib eine mindestens 4-stellige PIN ein.');
+      return;
+    }
+
+    const invite = this.storage.createInvite(pin);
+    this.closeModal();
+    this.render();
+    this.copyInviteWithPin(invite.token, invite.pin);
+  }
+
+  getBaseAppUrl() {
+    // Wenn lokal von der Festplatte getestet wird (file:/// oder localhost),
+    // erzeugen wir direkt die echte GitHub-Pages-URL für die Kameraden:
+    if (window.location.protocol === 'file:' || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+      return 'https://gn-data.github.io/Loeschstoff-Academy/';
+    }
+    return window.location.href.split('?')[0].split('#')[0];
+  }
+
+  copyInviteWithPin(token, pin) {
+    const baseUrl = this.getBaseAppUrl();
+    const url = `${baseUrl}?token=${encodeURIComponent(token)}`;
+    const fullText = `Hier ist dein Zugangslink zur LÖSCHSTOFF ACADEMY:\n${url}\n\nDeine Zugangs-PIN: ${pin}`;
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(fullText).then(() => {
+        alert(`📋 Link & PIN in die Zwischenablage kopiert!\n\nLink: ${url}\nZugangs-PIN: ${pin}\n\nKannst du jetzt direkt per WhatsApp, Signal oder E-Mail an den Kameraden senden.`);
+      }).catch(() => {
+        prompt('Hier ist dein Text zum Kopieren:', fullText);
+      });
+    } else {
+      prompt('Hier ist dein Text zum Kopieren:', fullText);
+    }
+  }
+
+  copyInviteOnlyLink(token) {
+    const baseUrl = this.getBaseAppUrl();
+    const url = `${baseUrl}?token=${encodeURIComponent(token)}`;
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(url).then(() => {
+        alert(`🔗 Link in die Zwischenablage kopiert!\n\n${url}`);
+      }).catch(() => {
+        prompt('Hier ist dein Link zum Kopieren:', url);
+      });
+    } else {
+      prompt('Hier ist dein Link zum Kopieren:', url);
+    }
+  }
+
+  deleteInvite(id) {
+    if (!confirm('Diesen Zugangslink wirklich löschen? Bereits freigeschaltete Geräte können die App weiterhin offline nutzen.')) return;
+    this.storage.deleteInvite(id);
+    this.render();
+  }
+
+  unlockAdminArea() {
+    const input = document.getElementById('admin-pin-input');
+    const pin = input?.value.trim();
+    if (pin === this.storage.getAdminPin() || pin === this.storage.getDevPin()) {
+      this.adminUnlocked = true;
+      this.render();
+    } else {
+      alert('Falsche Admin-PIN! (Standard: 1122)');
+    }
+  }
+
+  resetAdminPinPrompt() {
+    const answer = prompt(
+      'Sicherheitsabfrage zum Zurücksetzen der Admin-PIN:\n\n' +
+      'Wie lautet die europaweite Feuerwehr-Notrufnummer? (3 Ziffern):'
+    );
+    if (answer === null) return;
+    if (answer.trim() === '112') {
+      this.storage.setAdminPin('1122');
+      alert('Erfolg! Die Admin-PIN wurde auf den Standard „1122“ zurückgesetzt.');
+      this.render();
+    } else {
+      alert('Falsche Antwort. PIN wurde nicht zurückgesetzt.');
+    }
+  }
+
+  saveNewAdminPin() {
+    const input = document.getElementById('admin-new-pin');
+    const newPin = input?.value.trim();
+    if (!newPin || newPin.length < 3) {
+      alert('Bitte gib eine gültige PIN mit mindestens 3 Zeichen ein.');
+      return;
+    }
+    this.storage.setAdminPin(newPin);
+    alert(`Admin-PIN erfolgreich auf „${newPin}“ geändert!`);
+    this.render();
+  }
+
+  unlockDevArea() {
+    const input = document.getElementById('dev-pin-input');
+    const pin = input?.value.trim();
+    if (pin === this.storage.getDevPin()) {
+      this.devUnlocked = true;
+      this.adminUnlocked = true;
+      this.render();
+    } else {
+      alert('Falsche Entwickler-PIN! (Standard: 1120)');
+    }
+  }
+
+  resetDevPinPrompt() {
+    const answer = prompt(
+      'Sicherheitsabfrage zum Zurücksetzen der Entwickler-PIN:\n\n' +
+      'Wie lautet die europaweite Feuerwehr-Notrufnummer? (3 Ziffern):'
+    );
+    if (answer === null) return;
+    if (answer.trim() === '112') {
+      this.storage.setDevPin('1120');
+      alert('Erfolg! Die Entwickler-PIN wurde auf den Standard „1120“ zurückgesetzt.');
+      this.render();
+    } else {
+      alert('Falsche Antwort. PIN wurde nicht zurückgesetzt.');
+    }
+  }
+
+  saveNewDevPin() {
+    const input = document.getElementById('dev-new-pin');
+    const newPin = input?.value.trim();
+    if (!newPin || newPin.length < 3) {
+      alert('Bitte gib eine gültige Entwickler-PIN mit mindestens 3 Zeichen ein.');
+      return;
+    }
+    this.storage.setDevPin(newPin);
+    alert(`Entwickler-PIN erfolgreich auf „${newPin}“ geändert!`);
+    this.render();
   }
 
   handleLogoUpload(file) {
@@ -1862,299 +2240,11 @@ class FeuerwehrApp {
   }
 
   saveFeuerwehrName() {
-    const input = document.getElementById('dev-fw-name');
+    const input = document.getElementById('admin-fw-name') || document.getElementById('dev-fw-name');
     const name = input?.value.trim() || 'Freiwillige Feuerwehr';
     this.storage.setFeuerwehrName(name);
     alert(`Feuerwehr-Name auf der Startseite wurde auf „${name}“ geändert!`);
     this.render();
-  }
-
-  saveNewDevPin() {
-    const input = document.getElementById('dev-new-pin');
-    const newPin = input?.value.trim();
-    if (!newPin) {
-      alert('Bitte gib eine gültige PIN ein.');
-      return;
-    }
-    this.storage.setDevPin(newPin);
-    alert(`Entwickler-PIN erfolgreich auf „${newPin}“ geändert!`);
-    this.render();
-  }
-
-  // ==================== VIEW: DOKUMENTE & LERNMATERIAL (PDF) ====================
-
-  renderDocumentsView() {
-    const docs = this.storage.getDocuments();
-
-    return `
-      <div class="card">
-        <div class="card-header">
-          <div>
-            <h2 class="card-title">📚 Feuerwehr Dokumente & Lernmaterial</h2>
-            <p class="card-subtitle">Dienstvorschriften (FwDV), Gesetze, Lehrgangsunterlagen & Merkblätter</p>
-          </div>
-          <div style="display:flex; gap:8px; align-items:center;">
-            ${this.devVisible ? `
-              ${this.devUnlocked ? `
-                <button class="btn btn-primary btn-sm" onclick="app.openDocumentModal(null)">
-                  + Dokument hinzufügen
-                </button>
-              ` : `
-                <button class="btn btn-outline btn-sm" onclick="app.promptQuickDevUnlock()" title="Entwickler-Modus zum Bearbeiten/Austauschen aktivieren">
-                  ⚙️ Dokumente bearbeiten
-                </button>
-              `}
-            ` : ''}
-          </div>
-        </div>
-
-        ${docs.length === 0 ? `
-          <div style="text-align:center; padding:30px 16px; color:var(--text-muted);">
-            Noch keine Dokumente hinterlegt.
-          </div>
-        ` : `
-          <div style="display:flex; flex-direction:column; gap:12px;">
-            ${docs.map(doc => `
-              <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:14px; padding:14px; border-radius:var(--radius-md); border:1.5px solid var(--border-color); background:var(--bg-subtle); box-shadow:var(--shadow-sm);">
-                <div style="font-size:2.2rem; line-height:1; padding-top:2px;">📄</div>
-                <div style="flex:1; min-width:0;">
-                  <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:4px;">
-                    <span class="badge badge-slate" style="font-size:0.72rem;">${this.escapeHtml(doc.category || 'Dokument')}</span>
-                    ${doc.size ? `<span style="font-size:0.74rem; color:var(--text-muted);">${this.escapeHtml(doc.size)}</span>` : ''}
-                  </div>
-                  <div style="font-weight:800; font-size:1rem; color:var(--text-main); margin-bottom:4px;">
-                    ${this.escapeHtml(doc.title)}
-                  </div>
-                  ${doc.description ? `
-                    <div style="font-size:0.84rem; color:var(--text-muted); line-height:1.4; margin-bottom:8px;">
-                      ${this.escapeHtml(doc.description)}
-                    </div>
-                  ` : ''}
-                  <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
-                    <a href="${this.escapeHtml(doc.url)}" target="_blank" rel="noopener noreferrer"
-                       class="btn btn-navy btn-sm" style="text-decoration:none;">
-                      📖 Dokument öffnen / ansehen
-                    </a>
-                    ${this.devUnlocked ? `
-                      <button class="btn btn-outline btn-sm" onclick="app.openDocumentModal('${this.escapeHtml(doc.id)}')">
-                        ✏️ Ändern / Datei austauschen
-                      </button>
-                      <button class="btn btn-danger-outline btn-sm" onclick="if(confirm('Dokument „${this.escapeHtml(doc.title)}“ wirklich löschen?')) { app.storage.deleteDocument('${this.escapeHtml(doc.id)}'); app.render(); }">
-                        🗑 Löschen
-                      </button>
-                    ` : ''}
-                  </div>
-                </div>
-              </div>
-            `).join('')}
-          </div>
-        `}
-      </div>
-
-      ${this.devVisible ? `
-        <div class="card" style="background:var(--bg-subtle); border:1px dashed var(--input-border);">
-          <div style="font-weight:800; font-size:0.92rem; margin-bottom:4px;">💡 Ausbilder-Hinweis</div>
-          <p style="margin:0; font-size:0.84rem; color:var(--text-muted); line-height:1.45;">
-            Über <strong>„⚙️ Dokumente bearbeiten“</strong> oder im Reiter <strong>„⚙️ Entwickler“</strong> kannst du jedes vorhandene Dokument jederzeit anpassen, die hinterlegte PDF-Datei gegen eine neue Version austauschen oder neue Unterlagen hinzufügen.
-          </p>
-        </div>
-      ` : ''}
-    `;
-  }
-
-  promptQuickDevUnlock() {
-    const pin = prompt('Bitte Entwickler-PIN eingeben, um Dokumente zu bearbeiten/auszutauschen (Standard: 1120):');
-    if (pin === null) return;
-    if (pin.trim() === this.storage.getDevPin()) {
-      this.devUnlocked = true;
-      this.render();
-    } else {
-      alert('Falsche PIN! (Standard-PIN lautet: 1120)');
-    }
-  }
-
-  openAddDocumentModal() {
-    this.openDocumentModal(null);
-  }
-
-  openDocumentModal(docId = null) {
-    const modalRoot = document.getElementById('modal-root');
-    if (!modalRoot) return;
-
-    const existingDoc = docId ? this.storage.getDocumentById(docId) : null;
-    const isEdit = Boolean(existingDoc);
-
-    window._editingDocId = isEdit ? existingDoc.id : null;
-    window._newDocData = {
-      title: existingDoc?.title || '',
-      category: existingDoc?.category || 'Dienstvorschrift',
-      description: existingDoc?.description || '',
-      url: existingDoc?.url || '',
-      size: existingDoc?.size || ''
-    };
-
-    const categories = [
-      { val: 'Dienstvorschrift', label: 'Dienstvorschrift (FwDV)' },
-      { val: 'Lehrgangsunterlage', label: 'Lehrgangsunterlage / MTA' },
-      { val: 'Gesetzestext', label: 'Gesetzestext / Verordnung' },
-      { val: 'Merkblatt', label: 'Merkblatt / Leitfaden' },
-      { val: 'Sonstiges', label: 'Sonstiges' }
-    ];
-
-    const isEmbeddedPdf = (existingDoc?.url || '').startsWith('data:');
-    const displayUrlValue = isEmbeddedPdf ? '' : (existingDoc?.url || '');
-
-    modalRoot.innerHTML = `
-      <div class="modal-backdrop" onclick="if(event.target===this) app.closeModal()">
-        <div class="modal-box" style="max-width:540px;">
-          <h3 style="margin:0 0 12px 0;">
-            ${isEdit ? '✏️ Dokument bearbeiten / Datei austauschen' : '📄 Neues Dokument / PDF bereitstellen'}
-          </h3>
-          <div class="input-group" style="margin-bottom:10px;">
-            <label>Titel des Dokuments</label>
-            <input type="text" id="doc-title-in" class="form-input"
-                   value="${this.escapeHtml(window._newDocData.title)}"
-                   placeholder="z. B. FwDV 1 – Grundtätigkeiten" />
-          </div>
-          <div class="input-group" style="margin-bottom:10px;">
-            <label>Kategorie</label>
-            <select id="doc-cat-in" class="form-select">
-              ${categories.map(c => `
-                <option value="${this.escapeHtml(c.val)}" ${window._newDocData.category === c.val ? 'selected' : ''}>
-                  ${this.escapeHtml(c.label)}
-                </option>
-              `).join('')}
-            </select>
-          </div>
-          <div class="input-group" style="margin-bottom:12px;">
-            <label>Kurzbeschreibung (optional)</label>
-            <input type="text" id="doc-desc-in" class="form-input"
-                   value="${this.escapeHtml(window._newDocData.description)}"
-                   placeholder="Worum geht es in dem Dokument?" />
-          </div>
-
-          ${isEdit ? `
-            <div style="margin-bottom:12px; padding:8px 12px; border-radius:8px; background:var(--exam-bg); border:1px solid var(--exam-border); font-size:0.82rem; color:var(--exam-text);">
-              <strong>Aktuell hinterlegt:</strong>
-              ${isEmbeddedPdf
-                ? `Eingebettete PDF-Datei (${this.escapeHtml(existingDoc.size || 'PDF')})`
-                : `Link: ${this.escapeHtml(existingDoc.url)}`}
-              <br/><span style="color:var(--text-muted);">Lade unten einfach eine neue Datei hoch oder ändere den Link, um das Dokument auszutauschen (oder lasse es frei, um nur Titel/Text zu ändern).</span>
-            </div>
-          ` : ''}
-
-          <div class="input-group" style="margin-bottom:12px; background:var(--bg-subtle); padding:10px; border-radius:8px; border:1px solid var(--input-border);">
-            <label>${isEdit ? 'Option A: Neue PDF-Datei hochladen (tauscht vorhandene Datei aus)' : 'Option A: Lokale PDF-Datei hochladen'}</label>
-            <input type="file" id="doc-file-in" accept=".pdf,application/pdf" class="form-input" style="padding:6px;"
-                   onchange="app.handleDocFileUpload(this.files[0])" />
-          </div>
-
-          <div class="input-group" style="margin-bottom:16px;">
-            <label>${isEdit ? 'Option B: Link / URL ändern' : 'Option B: Link / URL zum Dokument'}</label>
-            <input type="text" id="doc-url-in" class="form-input"
-                   value="${this.escapeHtml(displayUrlValue)}"
-                   placeholder="${isEmbeddedPdf ? 'Aktuelle PDF-Datei bleibt erhalten (oder neuen Link eingeben)' : 'https://... oder datei.pdf'}" />
-          </div>
-
-          <div style="display:flex; gap:10px;">
-            <button class="btn btn-outline" style="flex:1" onclick="app.closeModal()">Abbrechen</button>
-            <button class="btn btn-primary" style="flex:2" onclick="app.confirmSaveDocument()">
-              ${isEdit ? '✓ Änderungen speichern' : 'Dokument speichern'}
-            </button>
-          </div>
-        </div>
-      </div>
-    `;
-  }
-
-  handleDocFileUpload(file) {
-    if (!file) return;
-    const titleInput = document.getElementById('doc-title-in');
-    if (titleInput && !titleInput.value.trim()) {
-      titleInput.value = file.name.replace(/\.[^/.]+$/, "");
-    }
-    const sizeKb = Math.round(file.size / 1024);
-    const sizeStr = sizeKb > 1024 ? (sizeKb / 1024).toFixed(1) + ' MB' : sizeKb + ' KB';
-
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      window._newDocData.uploadedUrl = e.target.result;
-      window._newDocData.size = sizeStr;
-      const urlInput = document.getElementById('doc-url-in');
-      if (urlInput) urlInput.value = `[Neue PDF-Datei ausgewählt: ${file.name} (${sizeStr})]`;
-    };
-    reader.readAsDataURL(file);
-  }
-
-  confirmSaveDocument() {
-    const title = document.getElementById('doc-title-in')?.value.trim();
-    const category = document.getElementById('doc-cat-in')?.value || 'Dokument';
-    const description = document.getElementById('doc-desc-in')?.value.trim() || '';
-    const manualUrlInput = document.getElementById('doc-url-in')?.value.trim() || '';
-
-    let finalUrl = window._newDocData?.url || '';
-    if (window._newDocData?.uploadedUrl) {
-      finalUrl = window._newDocData.uploadedUrl;
-    } else if (manualUrlInput && !manualUrlInput.startsWith('[Neue PDF-Datei')) {
-      finalUrl = manualUrlInput;
-    }
-
-    if (!title) {
-      alert('Bitte gib einen Titel für das Dokument ein.');
-      return;
-    }
-    if (!finalUrl) {
-      alert('Bitte lade eine PDF-Datei hoch oder gib einen Link ein.');
-      return;
-    }
-
-    if (window._editingDocId) {
-      this.storage.updateDocument(window._editingDocId, {
-        title,
-        category,
-        description,
-        url: finalUrl,
-        size: window._newDocData?.size || ''
-      });
-    } else {
-      this.storage.addDocument({
-        title,
-        category,
-        description,
-        url: finalUrl,
-        size: window._newDocData?.size || '',
-        date: new Date().toISOString().slice(0, 10)
-      });
-    }
-
-    this.closeModal();
-    this.render();
-  }
-
-  unlockDevArea() {
-    const input = document.getElementById('dev-pin-input');
-    const pin = input?.value.trim();
-    if (pin === this.storage.getDevPin()) {
-      this.devUnlocked = true;
-      this.render();
-    } else {
-      alert('Falsche PIN! Falls du sie vergessen hast, klicke unten auf „PIN vergessen?“.');
-    }
-  }
-
-  resetDevPinPrompt() {
-    const answer = prompt(
-      'Sicherheitsabfrage zum Zurücksetzen der Entwickler-PIN:\n\n' +
-      'Wie lautet die europaweite Feuerwehr-Notrufnummer? (3 Ziffern):'
-    );
-    if (answer === null) return;
-    if (answer.trim() === '112') {
-      this.storage.setDevPin('1120');
-      alert('Erfolg! Die Entwickler-PIN wurde wieder auf den Standard „1120“ zurückgesetzt.');
-      this.render();
-    } else {
-      alert('Falsche Antwort. PIN wurde nicht zurückgesetzt.');
-    }
   }
 
   saveCatalogConfig() {
@@ -2191,7 +2281,7 @@ class FeuerwehrApp {
           <h3 style="margin:0 0 12px 0;">➕ Neuen Fragebogen anlegen</h3>
           <div class="input-group" style="margin-bottom:10px;">
             <label>Name des Fragebogens / Lehrgangs</label>
-            <input type="text" id="new-cat-title" class="form-input" placeholder="z. B. Truppführer-Prüfung / Maschinist" />
+            <input type="text" id="new-cat-title" class="form-input" placeholder="z. B. Maschinist / Truppführer" />
           </div>
           <div class="input-group" style="margin-bottom:10px;">
             <label>Untertitel / Beschreibung</label>
@@ -2342,7 +2432,6 @@ class FeuerwehrApp {
                    oninput="window._editingQuestionData.explanation = this.value" />
           </div>
 
-          <!-- BILD ZUR FRAGE (UPLOAD ODER URL) -->
           <div class="input-group" style="margin-bottom:16px; background:#F8FAFC; border:1px solid #CBD5E1; padding:10px 12px; border-radius:8px;">
             <label>🖼 Bild zur Frage hinterlegen (optional für Symbole, Skizzen, Tafeln)</label>
             <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-top:4px;">
@@ -2507,7 +2596,226 @@ class FeuerwehrApp {
     URL.revokeObjectURL(url);
   }
 
-  // ==================== VIEW 7: INSTALLATION (OHNE APP STORE AUF ANDROID & iOS) ====================
+  // ==================== VIEW: DOKUMENTE & LERNMATERIAL (PDF) ====================
+
+  renderDocumentsView() {
+    const docs = this.storage.getDocuments();
+
+    return `
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <h2 class="card-title">📚 Feuerwehr Dokumente & Lernmaterial</h2>
+            <p class="card-subtitle">Dienstvorschriften (FwDV), Gesetze, Lehrgangsunterlagen & Merkblätter</p>
+          </div>
+          <div style="display:flex; gap:8px; align-items:center;">
+            ${this.devUnlocked ? `
+              <button class="btn btn-primary btn-sm" onclick="app.openDocumentModal(null)">
+                + Dokument hinzufügen
+              </button>
+            ` : ''}
+          </div>
+        </div>
+
+        ${docs.length === 0 ? `
+          <div style="text-align:center; padding:30px 16px; color:var(--text-muted);">
+            Noch keine Dokumente hinterlegt.
+          </div>
+        ` : `
+          <div style="display:flex; flex-direction:column; gap:12px;">
+            ${docs.map(doc => `
+              <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:14px; padding:14px; border-radius:var(--radius-md); border:1.5px solid var(--border-color); background:var(--bg-subtle); box-shadow:var(--shadow-sm);">
+                <div style="font-size:2.2rem; line-height:1; padding-top:2px;">📄</div>
+                <div style="flex:1; min-width:0;">
+                  <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:4px;">
+                    <span class="badge badge-slate" style="font-size:0.72rem;">${this.escapeHtml(doc.category || 'Dokument')}</span>
+                    ${doc.size ? `<span style="font-size:0.74rem; color:var(--text-muted);">${this.escapeHtml(doc.size)}</span>` : ''}
+                  </div>
+                  <div style="font-weight:800; font-size:1rem; color:var(--text-main); margin-bottom:4px;">
+                    ${this.escapeHtml(doc.title)}
+                  </div>
+                  ${doc.description ? `
+                    <div style="font-size:0.84rem; color:var(--text-muted); line-height:1.4; margin-bottom:8px;">
+                      ${this.escapeHtml(doc.description)}
+                    </div>
+                  ` : ''}
+                  <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+                    <a href="${this.escapeHtml(doc.url)}" target="_blank" rel="noopener noreferrer"
+                       class="btn btn-navy btn-sm" style="text-decoration:none;">
+                      📖 Dokument öffnen / ansehen
+                    </a>
+                    ${this.devUnlocked ? `
+                      <button class="btn btn-outline btn-sm" onclick="app.openDocumentModal('${this.escapeHtml(doc.id)}')">
+                        ✏️ Ändern / Datei austauschen
+                      </button>
+                      <button class="btn btn-danger-outline btn-sm" onclick="if(confirm('Dokument „${this.escapeHtml(doc.title)}“ wirklich löschen?')) { app.storage.deleteDocument('${this.escapeHtml(doc.id)}'); app.render(); }">
+                        🗑 Löschen
+                      </button>
+                    ` : ''}
+                  </div>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        `}
+      </div>
+    `;
+  }
+
+  openDocumentModal(docId = null) {
+    const modalRoot = document.getElementById('modal-root');
+    if (!modalRoot) return;
+
+    const existingDoc = docId ? this.storage.getDocumentById(docId) : null;
+    const isEdit = Boolean(existingDoc);
+
+    window._editingDocId = isEdit ? existingDoc.id : null;
+    window._newDocData = {
+      title: existingDoc?.title || '',
+      category: existingDoc?.category || 'Dienstvorschrift',
+      description: existingDoc?.description || '',
+      url: existingDoc?.url || '',
+      size: existingDoc?.size || ''
+    };
+
+    const categories = [
+      { val: 'Dienstvorschrift', label: 'Dienstvorschrift (FwDV)' },
+      { val: 'Lehrgangsunterlage', label: 'Lehrgangsunterlage / MTA' },
+      { val: 'Gesetzestext', label: 'Gesetzestext / Verordnung' },
+      { val: 'Merkblatt', label: 'Merkblatt / Leitfaden' },
+      { val: 'Sonstiges', label: 'Sonstiges' }
+    ];
+
+    const isEmbeddedPdf = (existingDoc?.url || '').startsWith('data:');
+    const displayUrlValue = isEmbeddedPdf ? '' : (existingDoc?.url || '');
+
+    modalRoot.innerHTML = `
+      <div class="modal-backdrop" onclick="if(event.target===this) app.closeModal()">
+        <div class="modal-box" style="max-width:540px;">
+          <h3 style="margin:0 0 12px 0;">
+            ${isEdit ? '✏️ Dokument bearbeiten / Datei austauschen' : '📄 Neues Dokument / PDF bereitstellen'}
+          </h3>
+          <div class="input-group" style="margin-bottom:10px;">
+            <label>Titel des Dokuments</label>
+            <input type="text" id="doc-title-in" class="form-input"
+                   value="${this.escapeHtml(window._newDocData.title)}"
+                   placeholder="z. B. FwDV 1 – Grundtätigkeiten" />
+          </div>
+          <div class="input-group" style="margin-bottom:10px;">
+            <label>Kategorie</label>
+            <select id="doc-cat-in" class="form-select">
+              ${categories.map(c => `
+                <option value="${this.escapeHtml(c.val)}" ${window._newDocData.category === c.val ? 'selected' : ''}>
+                  ${this.escapeHtml(c.label)}
+                </option>
+              `).join('')}
+            </select>
+          </div>
+          <div class="input-group" style="margin-bottom:12px;">
+            <label>Kurzbeschreibung (optional)</label>
+            <input type="text" id="doc-desc-in" class="form-input"
+                   value="${this.escapeHtml(window._newDocData.description)}"
+                   placeholder="Worum geht es in dem Dokument?" />
+          </div>
+
+          ${isEdit ? `
+            <div style="margin-bottom:12px; padding:8px 12px; border-radius:8px; background:var(--exam-bg); border:1px solid var(--exam-border); font-size:0.82rem; color:var(--exam-text);">
+              <strong>Aktuell hinterlegt:</strong>
+              ${isEmbeddedPdf
+                ? `Eingebettete PDF-Datei (${this.escapeHtml(existingDoc.size || 'PDF')})`
+                : `Link: ${this.escapeHtml(existingDoc.url)}`}
+            </div>
+          ` : ''}
+
+          <div class="input-group" style="margin-bottom:12px; background:var(--bg-subtle); padding:10px; border-radius:8px; border:1px solid var(--input-border);">
+            <label>${isEdit ? 'Option A: Neue PDF-Datei hochladen (tauscht Datei aus)' : 'Option A: Lokale PDF-Datei hochladen'}</label>
+            <input type="file" id="doc-file-in" accept=".pdf,application/pdf" class="form-input" style="padding:6px;"
+                   onchange="app.handleDocFileUpload(this.files[0])" />
+          </div>
+
+          <div class="input-group" style="margin-bottom:16px;">
+            <label>${isEdit ? 'Option B: Link / URL ändern' : 'Option B: Link / URL zum Dokument'}</label>
+            <input type="text" id="doc-url-in" class="form-input"
+                   value="${this.escapeHtml(displayUrlValue)}"
+                   placeholder="${isEmbeddedPdf ? 'Aktuelle PDF-Datei bleibt erhalten (oder neuen Link eingeben)' : 'https://... oder datei.pdf'}" />
+          </div>
+
+          <div style="display:flex; gap:10px;">
+            <button class="btn btn-outline" style="flex:1" onclick="app.closeModal()">Abbrechen</button>
+            <button class="btn btn-primary" style="flex:2" onclick="app.confirmSaveDocument()">
+              ${isEdit ? '✓ Änderungen speichern' : 'Dokument speichern'}
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  handleDocFileUpload(file) {
+    if (!file) return;
+    const titleInput = document.getElementById('doc-title-in');
+    if (titleInput && !titleInput.value.trim()) {
+      titleInput.value = file.name.replace(/\.[^/.]+$/, "");
+    }
+    const sizeKb = Math.round(file.size / 1024);
+    const sizeStr = sizeKb > 1024 ? (sizeKb / 1024).toFixed(1) + ' MB' : sizeKb + ' KB';
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      window._newDocData.uploadedUrl = e.target.result;
+      window._newDocData.size = sizeStr;
+      const urlInput = document.getElementById('doc-url-in');
+      if (urlInput) urlInput.value = `[Neue PDF-Datei ausgewählt: ${file.name} (${sizeStr})]`;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  confirmSaveDocument() {
+    const title = document.getElementById('doc-title-in')?.value.trim();
+    const category = document.getElementById('doc-cat-in')?.value || 'Dokument';
+    const description = document.getElementById('doc-desc-in')?.value.trim() || '';
+    const manualUrlInput = document.getElementById('doc-url-in')?.value.trim() || '';
+
+    let finalUrl = window._newDocData?.url || '';
+    if (window._newDocData?.uploadedUrl) {
+      finalUrl = window._newDocData.uploadedUrl;
+    } else if (manualUrlInput && !manualUrlInput.startsWith('[Neue PDF-Datei')) {
+      finalUrl = manualUrlInput;
+    }
+
+    if (!title) {
+      alert('Bitte gib einen Titel für das Dokument ein.');
+      return;
+    }
+    if (!finalUrl) {
+      alert('Bitte lade eine PDF-Datei hoch oder gib einen Link ein.');
+      return;
+    }
+
+    if (window._editingDocId) {
+      this.storage.updateDocument(window._editingDocId, {
+        title,
+        category,
+        description,
+        url: finalUrl,
+        size: window._newDocData?.size || ''
+      });
+    } else {
+      this.storage.addDocument({
+        title,
+        category,
+        description,
+        url: finalUrl,
+        size: window._newDocData?.size || '',
+        date: new Date().toISOString().slice(0, 10)
+      });
+    }
+
+    this.closeModal();
+    this.render();
+  }
+
+  // ==================== VIEW 8: INSTALLATION (OHNE APP STORE) ====================
 
   renderInstallView() {
     return `
@@ -2532,13 +2840,13 @@ class FeuerwehrApp {
             <div>
               <h3 style="margin:0 0 8px 0;">🍎 iPhone & iPad (iOS)</h3>
               <ol style="margin:0; padding-left:18px; font-size:0.88rem; line-height:1.6;">
-                <li>Öffne den Link zur App in <strong>Safari</strong> auf dem iPhone.</li>
+                <li>Öffne den Einladungslink in <strong>Safari</strong> auf dem iPhone.</li>
                 <li>Tippe unten in der Leiste auf das <strong>Teilen-Symbol 📤</strong> (Quadrat mit Pfeil nach oben).</li>
                 <li>Wähle im Menü den Punkt <strong>„Zum Home-Bildschirm“</strong> aus.</li>
                 <li>Tippe oben rechts auf <strong>„Hinzufügen“</strong>.</li>
               </ol>
               <p style="margin:10px 0 0 0; font-size:0.8rem; color:var(--text-muted);">
-                ✓ Die App erscheint mit dem Feuerwehr-112-Icon auf dem Homescreen, läuft im Vollbildmodus und funktioniert auch komplett offline!
+                ✓ Die App erscheint mit dem Löschstoff-Icon auf dem Homescreen, läuft im Vollbildmodus und funktioniert 100% offline!
               </p>
             </div>
           </div>
@@ -2547,12 +2855,12 @@ class FeuerwehrApp {
             <div>
               <h3 style="margin:0 0 8px 0;">🤖 Android (Chrome / Samsung)</h3>
               <ol style="margin:0; padding-left:18px; font-size:0.88rem; line-height:1.6;">
-                <li>Öffne den Link zur App in <strong>Google Chrome</strong> auf dem Android-Smartphone.</li>
+                <li>Öffne den Einladungslink in <strong>Google Chrome</strong> auf dem Smartphone.</li>
                 <li>Tippe auf das Banner <strong>„App installieren“</strong> oder oben rechts auf das <strong>Drei-Punkte-Menü (⋮)</strong>.</li>
                 <li>Wähle <strong>„App installieren“</strong> bzw. <strong>„Zum Startbildschirm hinzufügen“</strong>.</li>
               </ol>
               <p style="margin:10px 0 0 0; font-size:0.8rem; color:var(--text-muted);">
-                ✓ Kein Google Play Store Konto für den Download aus dem Store erforderlich, sofort einsatzbereit!
+                ✓ Kein Play-Store-Download nötig, sofort einsatzbereit und vollständig offline-fähig!
               </p>
             </div>
           </div>
@@ -2570,28 +2878,10 @@ class FeuerwehrApp {
           <img src="assets/app-logo.jpg" alt="LÖSCHSTOFF ACADEMY" style="width:60px; height:60px; border-radius:14px; object-fit:cover; border:2px solid var(--border-color);" />
           <div style="flex:1; min-width:200px; font-size:0.88rem; line-height:1.55; color:var(--text-main);">
             <div><strong>Entwickelt von:</strong> Nico Galicki</div>
-            <div><strong>App-Version:</strong> 1.0 (Progressive Web App – 100% Offline-fähig)</div>
-            <div style="margin-top:4px;">
-              <a href="https://github.com/GN-Data/Loeschstoff-Academy" target="_blank" rel="noopener noreferrer" style="color:var(--fw-red); font-weight:700; text-decoration:none;">
-                🔗 GitHub Repository (GN-Data/Loeschstoff-Academy)
-              </a>
-            </div>
+            <div><strong>App-Version:</strong> 2.0 (Progressive Web App – 100% Offline-fähig)</div>
           </div>
         </div>
       </div>
-
-      ${this.devVisible ? `
-        <div class="card">
-          <h3 class="card-title" style="margin-bottom:8px;">💡 Tipp für dich als Entwickler</h3>
-          <p style="font-size:0.88rem; line-height:1.5; color:var(--text-main); margin:0 0 8px 0;">
-            Um neue Fragebögen für alle Kameraden bereitzustellen, hast du zwei einfache Wege:
-          </p>
-          <ul style="font-size:0.86rem; line-height:1.55; margin:0; padding-left:18px;">
-            <li><strong>Direkt in der App (Tab „Entwickler“):</strong> Entsperren, Excel/CSV/JSON importieren oder Fragen im Editor anlegen und die Prüfungsbedingungen einstellen.</li>
-            <li><strong>Im Projektordner:</strong> Klicke im Entwickler-Bereich auf <em>„frageboegen.json exportieren“</em> und lege die heruntergeladene Datei in den Ordner <code>data/frageboegen.json</code> (bzw. <code>data/defaultCatalogs.js</code>).</li>
-          </ul>
-        </div>
-      ` : ''}
     `;
   }
 
