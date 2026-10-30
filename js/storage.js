@@ -1,6 +1,7 @@
 /**
- * Storage & Data Layer – Feuerwehr Prüfungs- & Ausbildungs-Trainer
+ * Storage & Data Layer – LÖSCHSTOFF ACADEMY
  * Verwaltet Profile, individuellen Lernfortschritt, Prüfungsstatistiken,
+ * Einladungslinks & Zugangsberechtigungen, Admin- & Dev-Rollen,
  * Fragebögen sowie JSON-, CSV- und Excel-(.xlsx)-Import/Export.
  */
 
@@ -9,22 +10,15 @@ const STORAGE_KEYS = {
   ACTIVE_PROFILE: 'fw_trainer_active_profile_v1',
   CUSTOM_CATALOGS: 'fw_trainer_catalogs_v1',
   DEV_PIN: 'fw_trainer_dev_pin_v1',
+  ADMIN_PIN: 'fw_trainer_admin_pin_v1',
+  INVITES: 'fw_trainer_invites_v1',
+  AUTH_TOKEN: 'fw_trainer_auth_v1',
   APP_CONFIG: 'fw_trainer_app_config_v1',
   DOCUMENTS: 'fw_trainer_documents_v1'
 };
 
 const AVATAR_COLORS = [
   '#D32F2F', '#1976D2', '#388E3C', '#F57C00', '#7B1FA2', '#00796B', '#C2185B', '#455A64'
-];
-
-const RANKS = [
-  'Feuerwehranwärter/in',
-  'Feuerwehrmann / -frau',
-  'Oberfeuerwehrmann / -frau',
-  'Hauptfeuerwehrmann / -frau',
-  'Löschmeister/in',
-  'Brandmeister/in',
-  'Ausbilder / Prüfer'
 ];
 
 class AppStorage {
@@ -34,6 +28,7 @@ class AppStorage {
     this.activeProfileId = null;
     this.appConfig = { logo: 'assets/app-logo.jpg', feuerwehrName: 'Freiwillige Feuerwehr', subtitle: '', theme: 'auto' };
     this.documents = [];
+    this.invites = [];
     this.init();
   }
 
@@ -90,6 +85,9 @@ class AppStorage {
         }
       ];
     }
+
+    // Load invites
+    this.invites = this.getInvites();
 
     // Load profiles
     try {
@@ -150,7 +148,6 @@ class AppStorage {
 
   saveCatalogs() {
     localStorage.setItem(STORAGE_KEYS.CUSTOM_CATALOGS, JSON.stringify(this.catalogs));
-    // Falls der lokale Entwickler-Server (server.js) läuft, speichere Änderungen direkt in data/frageboegen.json & data/defaultCatalogs.js
     if (location.protocol.startsWith('http')) {
       fetch('/api/save-catalogs', {
         method: 'POST',
@@ -277,7 +274,7 @@ class AppStorage {
     return null;
   }
 
-  createProfile(name, rank = 'Feuerwehranwärter/in', color = null) {
+  createProfile(name, color = null) {
     const cleanName = (name || '').trim();
     if (!cleanName) return null;
 
@@ -285,7 +282,6 @@ class AppStorage {
     const newProfile = {
       id: 'prof_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
       name: cleanName,
-      rank: rank || 'Feuerwehranwärter/in',
       color: chosenColor,
       createdAt: new Date().toISOString(),
       progress: {}, // { [catalogId]: { [questionNumber]: { correctCount, wrongCount, lastResult, updatedAt } } }
@@ -303,7 +299,6 @@ class AppStorage {
     const prof = this.profiles.find(p => p.id === profileId);
     if (!prof) return null;
     if (updates.name) prof.name = updates.name.trim();
-    if (updates.rank) prof.rank = updates.rank;
     if (updates.color) prof.color = updates.color;
     this.saveProfiles();
     return prof;
@@ -367,7 +362,6 @@ class AppStorage {
       ...sessionSummary
     });
 
-    // Keep latest 100 sessions per profile
     if (profile.history.length > 100) {
       profile.history = profile.history.slice(0, 100);
     }
@@ -457,7 +451,7 @@ class AppStorage {
     };
   }
 
-  // ==================== DEVELOPER PIN ====================
+  // ==================== ROLES & PINS (ENTWICKLER & ADMIN) ====================
 
   getDevPin() {
     return localStorage.getItem(STORAGE_KEYS.DEV_PIN) || '1120';
@@ -465,6 +459,142 @@ class AppStorage {
 
   setDevPin(newPin) {
     localStorage.setItem(STORAGE_KEYS.DEV_PIN, String(newPin).trim());
+  }
+
+  getAdminPin() {
+    return localStorage.getItem(STORAGE_KEYS.ADMIN_PIN) || '1122';
+  }
+
+  setAdminPin(newPin) {
+    localStorage.setItem(STORAGE_KEYS.ADMIN_PIN, String(newPin).trim());
+  }
+
+  // ==================== TOKEN CRYPTO (OHNE BACKEND / SERVER) ====================
+
+  hashPinWithSalt(pin, salt) {
+    const str = String(pin).trim() + ':' + String(salt);
+    let h = 0x811c9dc5;
+    for (let i = 0; i < str.length; i++) {
+      h ^= str.charCodeAt(i);
+      h = Math.imul(h, 0x01000193);
+    }
+    return (h >>> 0).toString(16).padStart(8, '0');
+  }
+
+  generateInviteToken(pin) {
+    const salt = Math.floor(1000 + Math.random() * 9000).toString(16).padStart(4, '0');
+    const hash = this.hashPinWithSalt(pin, salt);
+    return `${salt}${hash}`;
+  }
+
+  verifyInviteToken(token, pin) {
+    if (!token || token.length < 8) return false;
+    const salt = token.slice(0, 4);
+    const expectedHash = token.slice(4);
+    return this.hashPinWithSalt(pin, salt) === expectedHash;
+  }
+
+  // ==================== INVITES & ACCESS CONTROL ====================
+
+  getInvites() {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEYS.INVITES);
+      if (saved) {
+        const list = JSON.parse(saved);
+        if (Array.isArray(list)) return list;
+      }
+    } catch (_) {}
+    return [];
+  }
+
+  saveInvites(invites) {
+    this.invites = invites;
+    localStorage.setItem(STORAGE_KEYS.INVITES, JSON.stringify(invites));
+  }
+
+  createInvite(customPin = null) {
+    const invites = this.getInvites();
+    // 4-stellige Zugangs-PIN
+    const cleanPin = (customPin && String(customPin).trim().length >= 4)
+      ? String(customPin).trim()
+      : Math.floor(1000 + Math.random() * 9000).toString();
+
+    const token = this.generateInviteToken(cleanPin);
+
+    const newInvite = {
+      id: 'inv_' + Date.now(),
+      pin: cleanPin,
+      token: token,
+      createdAt: new Date().toISOString().slice(0, 10)
+    };
+
+    invites.unshift(newInvite);
+    this.saveInvites(invites);
+    return newInvite;
+  }
+
+  deleteInvite(inviteId) {
+    const invites = this.getInvites().filter(i => i.id !== inviteId);
+    this.saveInvites(invites);
+  }
+
+  isDeviceAuthorized() {
+    try {
+      const auth = localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN);
+      if (auth) return true;
+    } catch (_) {}
+    return false;
+  }
+
+  getAuthInfo() {
+    try {
+      const auth = localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN);
+      if (auth) return JSON.parse(auth);
+    } catch (_) {}
+    return null;
+  }
+
+  authorizeDevice(enteredPin, urlToken = '') {
+    const cleanPin = String(enteredPin || '').trim();
+    if (!cleanPin) {
+      return { success: false, error: 'Bitte gib eine PIN ein.' };
+    }
+
+    // 1. Entwickler-Master-PIN
+    if (cleanPin === this.getDevPin()) {
+      const authData = { role: 'dev', title: 'Entwickler-Vollzugriff', authorizedAt: new Date().toISOString() };
+      localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, JSON.stringify(authData));
+      return { success: true, role: 'dev' };
+    }
+
+    // 2. Admin-PIN
+    if (cleanPin === this.getAdminPin()) {
+      const authData = { role: 'admin', title: 'Administrator', authorizedAt: new Date().toISOString() };
+      localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, JSON.stringify(authData));
+      return { success: true, role: 'admin' };
+    }
+
+    // 3. Prüfung gegen den Token im Einladungslink (mathematisch & offline ohne Backend!)
+    if (urlToken && this.verifyInviteToken(urlToken, cleanPin)) {
+      const authData = { role: 'user', token: urlToken, authorizedAt: new Date().toISOString() };
+      localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, JSON.stringify(authData));
+      return { success: true, role: 'user' };
+    }
+
+    // 4. Prüfung gegen lokal auf dem Admin-Gerät gespeicherte Einladungs-PINs
+    const invites = this.getInvites();
+    const matchingInvite = invites.find(inv => inv.pin === cleanPin);
+    if (matchingInvite) {
+      const authData = { role: 'user', token: matchingInvite.token, authorizedAt: new Date().toISOString() };
+      localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, JSON.stringify(authData));
+      return { success: true, role: 'user' };
+    }
+
+    return { success: false, error: 'Falsche PIN! Bitte prüfe deine Eingabe oder wende dich an deinen Administrator.' };
+  }
+
+  revokeDeviceAuthorization() {
+    localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
   }
 
   // ==================== IMPORT / EXPORT HELPERS ====================
@@ -524,16 +654,9 @@ class AppStorage {
     return validCatalogs;
   }
 
-  /**
-   * Parst eine CSV-Tabelle (Semikolon- oder Komma-getrennt) in ein Fragen-Array.
-   * Erwartete Spalten (flexibel):
-   * Nummer;Frage;AntwortA;AntwortB;AntwortC;AntwortD;Richtig;Erklärung
-   * wobei "Richtig" z.B. "A", "A,C", "1", "1,3" oder "B" sein kann.
-   */
   parseRowsToQuestions(rows) {
     if (!rows || rows.length === 0) return [];
 
-    // Prüfen, ob erste Zeile eine Kopfzeile ist
     const firstRowStr = rows[0].map(c => String(c || '').toLowerCase().trim());
     const hasHeader = firstRowStr.some(c =>
       c.includes('frage') || c.includes('question') || c.includes('antwort') || c === 'nr' || c === 'nummer'
@@ -553,7 +676,6 @@ class AppStorage {
       let explanation = '';
 
       if (cols.length >= 6) {
-        // Standard: Nr | Frage | A | B | C | D | Richtig | [Erklärung]
         const parsedNum = parseInt(cols[0], 10);
         if (!isNaN(parsedNum)) {
           number = parsedNum;
@@ -641,10 +763,6 @@ class AppStorage {
     return this.parseRowsToQuestions(rows);
   }
 
-  /**
-   * Liest eine Excel-Datei (.xlsx) direkt im Browser ohne externe Bibliotheken
-   * mittels DecompressionStream('deflate-raw') und DOMParser.
-   */
   async parseXlsxFileToQuestions(arrayBuffer) {
     const bytes = new Uint8Array(arrayBuffer);
     const view = new DataView(arrayBuffer);
@@ -653,7 +771,7 @@ class AppStorage {
     let offset = 0;
     while (offset + 30 <= bytes.length) {
       const sig = view.getUint32(offset, true);
-      if (sig !== 0x04034b50) break; // Local file header signature
+      if (sig !== 0x04034b50) break;
       const compression = view.getUint16(offset + 8, true);
       const compressedSize = view.getUint32(offset + 18, true);
       const fileNameLen = view.getUint16(offset + 26, true);
@@ -746,5 +864,4 @@ class AppStorage {
 }
 
 window.AVATAR_COLORS = AVATAR_COLORS;
-window.RANKS = RANKS;
 window.appStorage = new AppStorage();
