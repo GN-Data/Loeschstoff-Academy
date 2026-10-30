@@ -1,8 +1,14 @@
 /**
  * Erweiterung: Separate Export- und Download-Funktionen für
+<<<<<<< HEAD
  * 1) Fragebögen (frageboegen.js / frageboegen.json)
  * 2) Dokumente (dokumente.js / dokumente.json)
  * 3) Einstellungen / Branding (einstellungen.js / einstellungen.json)
+=======
+ * 1) Fragebögen (data/frageboegen.json bzw. data/defaultCatalogs.js)
+ * 2) Dokumente (data/dokumente.json bzw. data/defaultDocuments.js)
+ * 3) Einstellungen / Branding (data/einstellungen.json bzw. data/defaultConfig.js)
+>>>>>>> main
  * Inklusive Info-Modal ("ℹ️ Hilfe zu .js vs .json").
  */
 
@@ -40,7 +46,11 @@ if (typeof FeuerwehrApp !== 'undefined') {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
+<<<<<<< HEAD
     a.download = 'dokumente.js';
+=======
+    a.download = 'defaultDocuments.js';
+>>>>>>> main
     document.body.appendChild(a);
     a.click();
     a.remove();
@@ -54,7 +64,11 @@ if (typeof FeuerwehrApp !== 'undefined') {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
+<<<<<<< HEAD
     a.download = 'einstellungen.js';
+=======
+    a.download = 'defaultConfig.js';
+>>>>>>> main
     document.body.appendChild(a);
     a.click();
     a.remove();
@@ -68,7 +82,11 @@ if (typeof FeuerwehrApp !== 'undefined') {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
+<<<<<<< HEAD
     a.download = 'frageboegen.js';
+=======
+    a.download = 'defaultCatalogs.js';
+>>>>>>> main
     document.body.appendChild(a);
     a.click();
     a.remove();
@@ -97,9 +115,15 @@ if (typeof FeuerwehrApp !== 'undefined') {
               Für das Veröffentlichen auf <strong>GitHub Pages</strong> reicht es vollkommen, wenn du einfach die <strong>.js-Dateien</strong> herunterlädst und im Ordner <code>data/</code> ablegst:
             </p>
             <ul style="margin:6px 0 0 0; padding-left:20px; font-size:0.84rem; line-height:1.5; font-family:monospace;">
+<<<<<<< HEAD
               <li>data/frageboegen.js</li>
               <li>data/dokumente.js</li>
               <li>data/einstellungen.js</li>
+=======
+              <li>data/defaultDocuments.js</li>
+              <li>data/defaultConfig.js</li>
+              <li>data/defaultCatalogs.js</li>
+>>>>>>> main
             </ul>
             <p style="margin:6px 0 0 0; font-size:0.82rem; color:var(--text-muted);">
               Die App liest diese direkt ein und alle Benutzer auf GitHub Pages haben sofort denselben Stand wie du!
@@ -133,6 +157,7 @@ if (typeof FeuerwehrApp !== 'undefined') {
   };
 
   // Injiziere den sauberen Top-Bar-Bereich in den Entwickler-Modus (voll kompatibel mit Hell & Dunkel)
+<<<<<<< HEAD
   const origDevRender = FeuerwehrApp.prototype.renderDeveloperView;
   if (origDevRender) {
     FeuerwehrApp.prototype.renderDeveloperView = function() {
@@ -141,6 +166,17 @@ if (typeof FeuerwehrApp !== 'undefined') {
 
       const oldTopBarRegex = /<!-- TOP BAR ENTWICKLER -->[\s\S]*?<!-- 1\. STARTSEITEN-BANNER/;
 
+=======
+  const origRender = FeuerwehrApp.prototype.renderDeveloperView;
+  if (origRender) {
+    FeuerwehrApp.prototype.renderDeveloperView = function() {
+      let html = origRender.call(this);
+      if (!this.devUnlocked) return html;
+
+      const oldTopBarRegex = /<!-- TOP BAR ENTWICKLER -->[\s\S]*?<!-- APP-EINSTELLUNGEN/;
+
+      // Eigene CSS-Styles für maximale Lesbarkeit im hellen UND dunklen Modus
+>>>>>>> main
       const btnStyleJs = 'background:#1E293B; color:#FFFFFF; border:1px solid #334155; font-weight:700; font-size:0.8rem; padding:6px 10px; border-radius:6px; cursor:pointer; box-shadow:0 1px 3px rgba(0,0,0,0.15);';
       const btnStyleJson = 'background:#FFFFFF; color:#0F172A; border:1px solid #CBD5E1; font-weight:700; font-size:0.8rem; padding:6px 10px; border-radius:6px; cursor:pointer; box-shadow:0 1px 3px rgba(0,0,0,0.08);';
 
@@ -153,7 +189,11 @@ if (typeof FeuerwehrApp !== 'undefined') {
             </div>
             <h2 style="margin:0; font-size:1.18rem; color:var(--text-main);">Fragebögen, Dokumente & App-Einstellungen</h2>
           </div>
+<<<<<<< HEAD
           <button class="btn btn-sm" style="background:#EF4444; color:#FFFFFF; border:none; font-weight:700; display:flex; align-items:center; gap:6px; cursor:pointer; padding:6px 14px; border-radius:6px; box-shadow:0 2px 6px rgba(239,68,68,0.3);"
+=======
+          <button class="btn btn-sm" style="background:#EF4444; color:#FFF; border:none; font-weight:700; display:flex; align-items:center; gap:6px; cursor:pointer; padding:6px 14px; border-radius:6px; box-shadow:0 2px 6px rgba(239,68,68,0.3);"
+>>>>>>> main
                   onclick="app.devUnlocked=false; app.render();" title="Entwickler-Modus jetzt wieder sperren">
             🔒 Sperren
           </button>
@@ -164,6 +204,7 @@ if (typeof FeuerwehrApp !== 'undefined') {
             Exporte für GitHub / Web-Ablage:
           </div>
           <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+<<<<<<< HEAD
             <button style="${btnStyleJs}" onclick="app.downloadDefaultCatalogsJs()" title="Empfohlen: In data/frageboegen.js speichern">💾 Fragen (.js)</button>
             <button style="${btnStyleJson}" onclick="app.downloadCatalogsJson()" title="Backup: In data/frageboegen.json speichern">💾 Fragen (.json)</button>
             <button style="${btnStyleJs}" onclick="app.downloadDefaultDocumentsJs()" title="Empfohlen: In data/dokumente.js speichern">📄 Dokumente (.js)</button>
@@ -171,16 +212,30 @@ if (typeof FeuerwehrApp !== 'undefined') {
             <button style="${btnStyleJs}" onclick="app.downloadDefaultConfigJs()" title="Empfohlen: In data/einstellungen.js speichern">⚙️ Einstellungen (.js)</button>
             <button style="${btnStyleJson}" onclick="app.downloadConfigJson()" title="Backup: In data/einstellungen.json speichern">⚙️ Einstellungen (.json)</button>
             <button class="btn btn-sm" style="background:#0284C7; color:#FFFFFF; font-weight:800; border:none; padding:6px 12px; border-radius:6px; cursor:pointer;" onclick="app.openExportInfoModal()" title="Erklärung: Warum .js vs .json?">ℹ️ Info</button>
+=======
+            <button style="${btnStyleJs}" onclick="app.downloadDefaultCatalogsJs()" title="Empfohlen: In data/defaultCatalogs.js speichern">💾 Fragen (.js)</button>
+            <button style="${btnStyleJson}" onclick="app.downloadCatalogsJson()" title="Backup: In data/frageboegen.json speichern">💾 Fragen (.json)</button>
+            <button style="${btnStyleJs}" onclick="app.downloadDefaultDocumentsJs()" title="Empfohlen: In data/defaultDocuments.js speichern">📄 Dokumente (.js)</button>
+            <button style="${btnStyleJson}" onclick="app.downloadDocumentsJson()" title="Backup: In data/dokumente.json speichern">📄 Dokumente (.json)</button>
+            <button style="${btnStyleJs}" onclick="app.downloadDefaultConfigJs()" title="Empfohlen: In data/defaultConfig.js speichern">⚙️ Einstellungen (.js)</button>
+            <button style="${btnStyleJson}" onclick="app.downloadConfigJson()" title="Backup: In data/einstellungen.json speichern">⚙️ Einstellungen (.json)</button>
+            <button class="btn btn-sm" style="background:#0284C7; color:#FFF; font-weight:800; border:none; padding:6px 12px; border-radius:6px; cursor:pointer;" onclick="app.openExportInfoModal()" title="Erklärung: Warum .js vs .json?">ℹ️ Info</button>
+>>>>>>> main
           </div>
         </div>
       </div>
 
+<<<<<<< HEAD
       <!-- 1. STARTSEITEN-BANNER`;
+=======
+      <!-- APP-EINSTELLUNGEN`;
+>>>>>>> main
 
       html = html.replace(oldTopBarRegex, newTopBar);
       return html;
     };
   }
+<<<<<<< HEAD
 
   // Admin Top Bar: Sperren-Button kontrastreich
   const origAdminRender = FeuerwehrApp.prototype.renderAdminView;
@@ -197,4 +252,6 @@ if (typeof FeuerwehrApp !== 'undefined') {
       return html;
     };
   }
+=======
+>>>>>>> main
 }
