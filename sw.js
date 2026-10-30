@@ -1,9 +1,11 @@
-const CACHE_NAME = 'loeschstoff-academy-v2';
+const CACHE_NAME = 'loeschstoff-academy-v3';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
   './manifest.json',
   './css/styles.css',
+  './data/defaultConfig.js',
+  './data/defaultDocuments.js',
   './data/defaultCatalogs.js',
   './data/frageboegen.json',
   './js/storage.js',
@@ -51,9 +53,7 @@ self.addEventListener('fetch', (event) => {
         return networkResponse;
       })
       .catch(() => {
-        return caches.match(event.request).then((cachedResponse) => {
-          return cachedResponse || caches.match('./index.html');
-        });
+        return caches.match(event.request);
       })
   );
 });
