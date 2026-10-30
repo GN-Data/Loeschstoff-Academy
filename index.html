@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>Feuerwehr Prüfungs- & Ausbildungs-Trainer (MTA)</title>
+  <meta name="description" content="Prüfungstrainer & Lern-App für Feuerwehr-Lehrgänge (MTA Zwischenprüfung, Sprechfunk, Atemschutz)" />
+
+  <!-- PWA & Mobile Meta Tags (Android & iOS Direkt-Installation ohne Store) -->
+  <meta name="theme-color" content="#C62828" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Feuerwehr 112" />
+
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" type="image/svg+xml" href="assets/icon.svg" />
+  <link rel="apple-touch-icon" href="assets/apple-touch-icon.png" />
+
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <div id="app-root"></div>
+  <div id="modal-root"></div>
+
+  <!-- Standard-Fragebögen & App-Logik -->
+  <script src="data/defaultCatalogs.js"></script>
+  <script src="js/storage.js"></script>
+  <script src="js/app.js"></script>
+
+  <!-- Service Worker für 100% Offline-Fähigkeit -->
+  <script>
+    if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1')) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js').catch(() => {});
+      });
+    }
+  </script>
+</body>
+</html>

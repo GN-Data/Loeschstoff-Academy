@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#D32F2F" />
+      <stop offset="100%" stop-color="#8E0000" />
+    </linearGradient>
+    <linearGradient id="shieldGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#1E293B" />
+      <stop offset="100%" stop-color="#0F172A" />
+    </linearGradient>
+    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FDE047" />
+      <stop offset="100%" stop-color="#EAB308" />
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#bgGrad)" />
+  <rect x="16" y="16" width="480" height="480" rx="98" fill="none" stroke="rgba(255,255,255,0.18)" stroke-width="6" />
+  <path d="M256 68 L412 128 V254 C412 356 342 426 256 456 C170 426 100 356 100 254 V128 Z" fill="url(#shieldGrad)" stroke="url(#goldGrad)" stroke-width="14" stroke-linejoin="round" />
+  <path d="M256 125 C256 125 316 175 304 232 C322 215 330 192 330 192 C352 228 340 282 296 310 C312 276 294 246 274 234 C282 264 264 294 238 312 C214 295 198 266 212 228 C192 246 184 274 196 304 C162 278 158 228 186 190 C186 190 192 212 210 224 C202 174 256 125 256 125 Z" fill="url(#goldGrad)" />
+  <circle cx="348" cy="348" r="64" fill="#16A34A" stroke="#FFFFFF" stroke-width="10" />
+  <path d="M318 348 L338 368 L380 326" fill="none" stroke="#FFFFFF" stroke-width="14" stroke-linecap="round" stroke-linejoin="round" />
+  <text x="246" y="392" font-family="Arial, sans-serif" font-weight="900" font-size="52" fill="#FFFFFF" text-anchor="middle" letter-spacing="2">112</text>
+</svg>

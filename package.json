@@ -1,0 +1,18 @@
+{
+  "name": "feuerwehr-pruefung-trainer",
+  "version": "1.0.0",
+  "description": "Progressive Web App (PWA) für Android & iOS zum Üben von Feuerwehr-Lehrgängen und Prüfungen (MTA Zwischenprüfung u.v.m.)",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "keywords": [
+    "feuerwehr",
+    "mta",
+    "prüfung",
+    "pwa",
+    "ausbildung"
+  ],
+  "license": "MIT"
+}
