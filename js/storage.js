@@ -32,7 +32,7 @@ class AppStorage {
     this.catalogs = [];
     this.profiles = [];
     this.activeProfileId = null;
-    this.appConfig = { logo: 'assets/icon.svg', feuerwehrName: 'Freiwillige Feuerwehr', subtitle: '', theme: 'auto' };
+    this.appConfig = { logo: 'assets/app-logo.jpg', feuerwehrName: 'Freiwillige Feuerwehr', subtitle: '', theme: 'auto' };
     this.documents = [];
     this.init();
   }
@@ -43,6 +43,11 @@ class AppStorage {
       const savedConfig = localStorage.getItem(STORAGE_KEYS.APP_CONFIG);
       if (savedConfig) {
         this.appConfig = Object.assign(this.appConfig, JSON.parse(savedConfig));
+        // Auto-Migration: If previously stored default was the old generic icon.svg, update to new branding
+        if (!this.appConfig.logo || this.appConfig.logo === 'assets/icon.svg') {
+          this.appConfig.logo = 'assets/app-logo.jpg';
+          localStorage.setItem(STORAGE_KEYS.APP_CONFIG, JSON.stringify(this.appConfig));
+        }
       }
     } catch (_) {}
 
@@ -194,7 +199,7 @@ class AppStorage {
   }
 
   setAppLogo(logoDataUrl) {
-    this.appConfig.logo = logoDataUrl || 'assets/icon.svg';
+    this.appConfig.logo = logoDataUrl || 'assets/app-logo.jpg';
     localStorage.setItem(STORAGE_KEYS.APP_CONFIG, JSON.stringify(this.appConfig));
   }
 

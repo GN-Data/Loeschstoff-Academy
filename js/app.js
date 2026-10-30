@@ -813,7 +813,7 @@ class FeuerwehrApp {
       : 0;
 
     const appConfig = this.storage.getAppConfig();
-    const customLogo = appConfig.logo || 'assets/icon.svg';
+    const customLogo = appConfig.logo || 'assets/app-logo.jpg';
     const fwName = appConfig.feuerwehrName || 'Freiwillige Feuerwehr';
 
     return `
@@ -1611,7 +1611,7 @@ class FeuerwehrApp {
           </div>
         </div>
         <div style="display:flex; align-items:center; gap:16px; flex-wrap:wrap; margin-bottom:16px; padding-bottom:14px; border-bottom:1px solid var(--border-color);">
-          <img src="${this.escapeHtml(this.storage.getAppConfig().logo || 'assets/icon.svg')}"
+          <img src="${this.escapeHtml(this.storage.getAppConfig().logo || 'assets/app-logo.jpg')}"
                alt="Vorschau Startseiten-Logo"
                style="width:64px; height:64px; border-radius:14px; object-fit:contain; background:var(--bg-subtle); padding:4px; border:2px solid var(--border-color); box-shadow:0 2px 6px rgba(0,0,0,0.15);" />
           <div style="flex:1; min-width:200px;">
@@ -1621,7 +1621,7 @@ class FeuerwehrApp {
             <input type="file" id="dev-logo-input" accept="image/*" class="form-input" style="padding:6px;"
                    onchange="app.handleLogoUpload(this.files[0])" />
           </div>
-          <button class="btn btn-outline btn-sm" onclick="app.storage.setAppLogo('assets/icon.svg'); app.render();">
+          <button class="btn btn-outline btn-sm" onclick="app.storage.setAppLogo('assets/app-logo.jpg'); app.render();">
             Standard-Logo wiederherstellen
           </button>
         </div>
