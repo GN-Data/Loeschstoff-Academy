@@ -1,13 +1,19 @@
 {
-  "name": "feuerwehr-pruefung-trainer",
+  "name": "loeschstoff-academy",
   "version": "1.0.0",
-  "description": "Progressive Web App (PWA) für Android & iOS zum Üben von Feuerwehr-Lehrgängen und Prüfungen (MTA Zwischenprüfung u.v.m.)",
+  "description": "LÖSCHSTOFF ACADEMY – Wissen. Trainieren. Einsatzbereit. Progressive Web App (PWA) für Feuerwehr-Prüfungen & Ausbildung.",
+  "author": "Nico Galicki",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/GN-Data/Loeschstoff-Academy.git"
+  },
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
     "dev": "node server.js"
   },
   "keywords": [
+    "löschstoff-academy",
     "feuerwehr",
     "mta",
     "prüfung",

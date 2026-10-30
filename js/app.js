@@ -700,10 +700,13 @@ class FeuerwehrApp {
       <div class="app-shell">
         <header class="app-header">
           <div class="brand-wrap" onclick="app.switchTab('home')">
-            <img src="assets/icon.svg" alt="App Logo" class="brand-icon" style="object-fit:cover; cursor:pointer;"
-                 onclick="app.handleLogoSecretClick(event)" title="Feuerwehr Prüfungs-Trainer" />
+            <img src="assets/app-logo.jpg" alt="LÖSCHSTOFF ACADEMY Logo" class="brand-icon" style="object-fit:cover; cursor:pointer; border-radius:10px;"
+                 onclick="app.handleLogoSecretClick(event)" title="LÖSCHSTOFF ACADEMY – Wissen. Trainieren. Einsatzbereit." />
             <div>
-              <div class="brand-title">Feuerwehr Prüfungs-Trainer</div>
+              <div class="brand-title" style="letter-spacing:0.04em;">LÖSCHSTOFF <span style="font-weight:600; font-size:0.82em; opacity:0.92;">ACADEMY</span></div>
+              <div style="font-size:0.65rem; font-weight:700; letter-spacing:0.08em; opacity:0.85; text-transform:uppercase; margin-top:1px;">
+                Wissen. Trainieren. Einsatzbereit.
+              </div>
             </div>
           </div>
           <div class="header-actions">
@@ -721,6 +724,10 @@ class FeuerwehrApp {
 
         <main class="main-content">
           ${this.renderMainView()}
+          <footer style="text-align:center; padding:18px 12px 8px 12px; font-size:0.76rem; color:var(--text-muted); opacity:0.85;">
+            <strong>LÖSCHSTOFF ACADEMY</strong> · Wissen. Trainieren. Einsatzbereit.<br/>
+            Entwickelt von <strong>Nico Galicki</strong>
+          </footer>
         </main>
 
         ${!this.session ? this.renderBottomNav() : ''}
@@ -824,7 +831,7 @@ class FeuerwehrApp {
               <h2 style="margin:0 0 4px 0; font-size:1.18rem; font-weight:900; color:#FFF;">
                 ${activeProfile
                   ? `Hallo, ${this.escapeHtml(activeProfile.name)}!`
-                  : 'Willkommen beim Feuerwehr Prüfungs-Trainer!'}
+                  : 'Willkommen bei der LÖSCHSTOFF ACADEMY!'}
               </h2>
               <p style="margin:0; font-size:0.84rem; color:#CBD5E1; line-height:1.35;">
                 ${activeProfile
@@ -2553,15 +2560,38 @@ class FeuerwehrApp {
       </div>
 
       <div class="card">
-        <h3 class="card-title" style="margin-bottom:8px;">💡 Tipp für dich als Entwickler</h3>
-        <p style="font-size:0.88rem; line-height:1.5; color:var(--text-main); margin:0 0 8px 0;">
-          Um neue Fragebögen für alle Kameraden bereitzustellen, hast du zwei einfache Wege:
-        </p>
-        <ul style="font-size:0.86rem; line-height:1.55; margin:0; padding-left:18px;">
-          <li><strong>Direkt in der App (Tab „Entwickler“):</strong> Mit PIN <code>1120</code> entsperren, Excel/CSV/JSON importieren oder Fragen im Editor anlegen und die Prüfungsbedingungen (z. B. 50 Zufallsfragen, 75% zum Bestehen) einstellen.</li>
-          <li><strong>Im Projektordner:</strong> Klicke im Entwickler-Bereich auf <em>„frageboegen.json exportieren“</em> und lege die heruntergeladene Datei in den Ordner <code>data/frageboegen.json</code> (bzw. <code>data/defaultCatalogs.js</code>).</li>
-        </ul>
+        <div class="card-header">
+          <div>
+            <h3 class="card-title">👨‍💻 Über LÖSCHSTOFF ACADEMY</h3>
+            <p class="card-subtitle">WISSEN. TRAINIEREN. EINSATZBEREIT.</p>
+          </div>
+        </div>
+        <div style="display:flex; align-items:center; gap:14px; flex-wrap:wrap;">
+          <img src="assets/app-logo.jpg" alt="LÖSCHSTOFF ACADEMY" style="width:60px; height:60px; border-radius:14px; object-fit:cover; border:2px solid var(--border-color);" />
+          <div style="flex:1; min-width:200px; font-size:0.88rem; line-height:1.55; color:var(--text-main);">
+            <div><strong>Entwickelt von:</strong> Nico Galicki</div>
+            <div><strong>App-Version:</strong> 1.0 (Progressive Web App – 100% Offline-fähig)</div>
+            <div style="margin-top:4px;">
+              <a href="https://github.com/GN-Data/Loeschstoff-Academy" target="_blank" rel="noopener noreferrer" style="color:var(--fw-red); font-weight:700; text-decoration:none;">
+                🔗 GitHub Repository (GN-Data/Loeschstoff-Academy)
+              </a>
+            </div>
+          </div>
+        </div>
       </div>
+
+      ${this.devVisible ? `
+        <div class="card">
+          <h3 class="card-title" style="margin-bottom:8px;">💡 Tipp für dich als Entwickler</h3>
+          <p style="font-size:0.88rem; line-height:1.5; color:var(--text-main); margin:0 0 8px 0;">
+            Um neue Fragebögen für alle Kameraden bereitzustellen, hast du zwei einfache Wege:
+          </p>
+          <ul style="font-size:0.86rem; line-height:1.55; margin:0; padding-left:18px;">
+            <li><strong>Direkt in der App (Tab „Entwickler“):</strong> Entsperren, Excel/CSV/JSON importieren oder Fragen im Editor anlegen und die Prüfungsbedingungen einstellen.</li>
+            <li><strong>Im Projektordner:</strong> Klicke im Entwickler-Bereich auf <em>„frageboegen.json exportieren“</em> und lege die heruntergeladene Datei in den Ordner <code>data/frageboegen.json</code> (bzw. <code>data/defaultCatalogs.js</code>).</li>
+          </ul>
+        </div>
+      ` : ''}
     `;
   }
 

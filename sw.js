@@ -1,4 +1,4 @@
-const CACHE_NAME = 'feuerwehr-trainer-v1';
+const CACHE_NAME = 'loeschstoff-academy-v2';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -8,6 +8,7 @@ const ASSETS_TO_CACHE = [
   './data/frageboegen.json',
   './js/storage.js',
   './js/app.js',
+  './assets/app-logo.jpg',
   './assets/icon.svg',
   './assets/icon-192.png',
   './assets/icon-512.png',
