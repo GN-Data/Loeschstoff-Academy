@@ -18,16 +18,28 @@
   <link rel="icon" type="image/jpeg" href="assets/app-logo.jpg" />
   <link rel="apple-touch-icon" href="assets/app-logo.jpg" />
 
-  <link rel="stylesheet" href="css/styles.css?v=6" />
+  <link rel="stylesheet" href="css/styles.css?v=8" />
 </head>
 <body>
   <div id="app-root"></div>
   <div id="modal-root"></div>
 
-  <!-- Standard-Fragebögen & App-Logik -->
-  <script src="data/defaultCatalogs.js?v=6"></script>
-  <script src="js/storage.js?v=6"></script>
-  <script src="js/app.js?v=6"></script>
+  <!-- Standard-Dateien (unterstützt die neuen deutschen Dateinamen + Fallback) -->
+  <script src="data/defaultConfig.js?v=8"></script>
+  <script src="data/einstellungen.js?v=8"></script>
+
+  <script src="data/defaultDocuments.js?v=8"></script>
+  <script src="data/dokumente.js?v=8"></script>
+
+  <script src="data/defaultCatalogs.js?v=8"></script>
+  <script src="data/frageboegen.js?v=8"></script>
+
+  <!-- App-Logik -->
+  <script src="js/storage.js?v=8"></script>
+  <script src="js/storage-exports.js?v=8"></script>
+  <script src="js/app.js?v=8"></script>
+  <script src="js/app-exports.js?v=8"></script>
+  <script src="js/pin-placeholders.js?v=8"></script>
 
   <!-- Service Worker für 100% Offline-Fähigkeit -->
   <script>

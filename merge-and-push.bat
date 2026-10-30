@@ -2,68 +2,35 @@
 chcp 65001 >nul
 cd /d "C:\Projekte\Löschstoff Academy"
 
-<<<<<<< HEAD
 echo ============================================================
-echo   LÖSCHSTOFF ACADEMY - Merge & Push
+echo   LÖSCHSTOFF ACADEMY - Merge & Push dev und main
 echo ============================================================
 echo.
 
-echo [1/6] Fuege alle Aenderungen hinzu...
-git add .
+echo [1/5] Speichere alle lokalen Aenderungen und neuen Dateien...
+git add -A
+git commit -m "feat: update documents, settings, high-contrast buttons, neutral placeholders"
 
 echo.
-echo [2/6] Erstelle Commit mit den neuen Frageboegen & Konfigurationen...
-git commit -m "feat(catalogs): update exam catalogs and admin invite workflow"
-
-echo.
-echo [3/6] Wechsel auf Branch 'dev' und merge...
+echo [2/5] Wechsle zu dev und uebernehme aktuellen Stand...
 git checkout dev
-git merge feature/admin-role-and-invites -m "merge: feature/admin-role-and-invites in dev"
+git merge main -m "merge: main into dev"
 
 echo.
-echo [4/6] Wechsel auf Branch 'main' und merge 'dev'...
+echo [3/5] Wechsle zu main und stelle Gleichstand sicher...
 git checkout main
-git merge dev -m "merge: dev in main"
+git merge dev -m "merge: dev into main"
 
 echo.
-echo [5/6] Push 'main' und 'dev' zu GitHub origin...
+echo [4/5] Pushe BEIDE Branches dev und main zu GitHub...
 git push origin main dev
 
 echo.
-echo [6/6] Fertig! Aktueller Branch-Status:
+echo [5/5] Pruefe aktuellen Git-Status:
 git status
+
 echo.
 echo ============================================================
-echo   Erfolgreich gemerged und gepusht!
+echo   ERFOLGREICH ABGESCHLOSSEN!
 echo ============================================================
-=======
-echo ========================================================
-echo   LÖSCHSTOFF ACADEMY - Merge & Push (dev ^& main)
-echo ========================================================
-echo.
-
-echo 1. Änderungen committen...
-git add .
-git commit -m "feat: Admin-Rolle, Einladungssystem mit PIN, Dienstgrad entfernt"
-
-echo.
-echo 2. Zu dev wechseln und mergen...
-git checkout dev
-git merge feature/admin-role-and-invites
-
-echo.
-echo 3. Zu main wechseln und mergen...
-git checkout main
-git merge dev
-
-echo.
-echo 4. Zu GitHub pushen (main und dev)...
-git push origin main dev
-
-echo.
-echo ========================================================
-echo   ERFOLGREICH! Alle Branches sind aktuell auf GitHub.
-echo ========================================================
-echo.
->>>>>>> feature/admin-role-and-invites
 pause
