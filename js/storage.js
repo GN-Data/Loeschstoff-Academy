@@ -26,7 +26,11 @@ class AppStorage {
     this.catalogs = [];
     this.profiles = [];
     this.activeProfileId = null;
-    this.appConfig = { logo: 'assets/app-logo.jpg', feuerwehrName: 'Freiwillige Feuerwehr', subtitle: '', theme: 'auto' };
+    const defaultCfg = (typeof window !== 'undefined' && window.DEFAULT_APP_CONFIG) ? window.DEFAULT_APP_CONFIG : {};
+    this.appConfig = Object.assign(
+      { logo: 'assets/app-logo.jpg', feuerwehrName: 'Freiwillige Feuerwehr', subtitle: '', theme: 'auto' },
+      defaultCfg
+    );
     this.documents = [];
     this.invites = [];
     this.init();
@@ -34,56 +38,53 @@ class AppStorage {
 
   init() {
     // Load config
+    const defaultCfg = (typeof window !== 'undefined' && window.DEFAULT_APP_CONFIG) ? window.DEFAULT_APP_CONFIG : {};
     try {
       const savedConfig = localStorage.getItem(STORAGE_KEYS.APP_CONFIG);
       if (savedConfig) {
-        this.appConfig = Object.assign(this.appConfig, JSON.parse(savedConfig));
-        // Auto-Migration: If previously stored default was the old generic icon.svg, update to new branding
-        if (!this.appConfig.logo || this.appConfig.logo === 'assets/icon.svg') {
-          this.appConfig.logo = 'assets/app-logo.jpg';
-          localStorage.setItem(STORAGE_KEYS.APP_CONFIG, JSON.stringify(this.appConfig));
+        const parsed = JSON.parse(savedConfig);
+        // Migration: Wenn im localStorage noch der Standardname 'Freiwillige Feuerwehr' steht, aber in defaultConfig ein eigener Name hinterlegt ist
+        if (defaultCfg.feuerwehrName && defaultCfg.feuerwehrName !== 'Freiwillige Feuerwehr' && parsed.feuerwehrName === 'Freiwillige Feuerwehr') {
+          parsed.feuerwehrName = defaultCfg.feuerwehrName;
         }
+        if (defaultCfg.logo && defaultCfg.logo !== 'assets/app-logo.jpg' && (!parsed.logo || parsed.logo === 'assets/app-logo.jpg' || parsed.logo === 'assets/icon.svg')) {
+          parsed.logo = defaultCfg.logo;
+        }
+        this.appConfig = Object.assign({}, this.appConfig, parsed);
+        localStorage.setItem(STORAGE_KEYS.APP_CONFIG, JSON.stringify(this.appConfig));
+      } else {
+        localStorage.setItem(STORAGE_KEYS.APP_CONFIG, JSON.stringify(this.appConfig));
       }
     } catch (_) {}
 
     // Load documents
+    const defaultDocs = (typeof window !== 'undefined' && Array.isArray(window.DEFAULT_DOCUMENTS) && window.DEFAULT_DOCUMENTS.length > 0)
+      ? window.DEFAULT_DOCUMENTS
+      : [];
+
     try {
       const savedDocs = localStorage.getItem(STORAGE_KEYS.DOCUMENTS);
       if (savedDocs) {
-        this.documents = JSON.parse(savedDocs);
+        const parsedDocs = JSON.parse(savedDocs);
+        // Prüfe ob nur alte Dummy-Links gespeichert waren (feuerwehrschulen.bayern.de) oder Liste leer ist
+        const isOldDummy = Array.isArray(parsedDocs) && (
+          parsedDocs.length === 0 ||
+          (parsedDocs.length <= 3 && parsedDocs.some(d => d.url && d.url.includes('feuerwehrschulen.bayern.de')))
+        );
+        if (isOldDummy && defaultDocs.length > 0) {
+          this.documents = JSON.parse(JSON.stringify(defaultDocs));
+          localStorage.setItem(STORAGE_KEYS.DOCUMENTS, JSON.stringify(this.documents));
+        } else if (Array.isArray(parsedDocs) && parsedDocs.length > 0) {
+          this.documents = parsedDocs;
+        }
       }
     } catch (_) {}
 
     if (!Array.isArray(this.documents) || this.documents.length === 0) {
-      this.documents = [
-        {
-          id: 'doc_fwdv3',
-          title: 'FwDV 3 – Einheiten im Lösch- und Hilfeleistungseinsatz',
-          category: 'Dienstvorschrift',
-          date: '2026-10-30',
-          size: '1.2 MB',
-          description: 'Grundlegende Feuerwehr-Dienstvorschrift für den Löscheinsatz und die Technische Hilfeleistung.',
-          url: 'https://www.feuerwehrschulen.bayern.de'
-        },
-        {
-          id: 'doc_fwdv10',
-          title: 'FwDV 10 – Die tragbaren Leitern',
-          category: 'Dienstvorschrift',
-          date: '2026-10-30',
-          size: '850 KB',
-          description: 'Handhabung und Sicherheitsvorschriften für Steckleiter, Schiebleiter und Klappleiter.',
-          url: 'https://www.feuerwehrschulen.bayern.de'
-        },
-        {
-          id: 'doc_bayfwg',
-          title: 'Bayerisches Feuerwehrgesetz (BayFwG)',
-          category: 'Gesetzestext',
-          date: '2026-10-30',
-          size: '620 KB',
-          description: 'Rechtliche Grundlagen über Organisation, Rechte und Pflichten der Feuerwehren in Bayern.',
-          url: 'https://www.gesetze-bayern.de'
-        }
-      ];
+      this.documents = defaultDocs.length > 0 ? JSON.parse(JSON.stringify(defaultDocs)) : [];
+      if (this.documents.length > 0) {
+        try { localStorage.setItem(STORAGE_KEYS.DOCUMENTS, JSON.stringify(this.documents)); } catch (_) {}
+      }
     }
 
     // Load invites

@@ -1,8 +1,4 @@
-<<<<<<< HEAD
-const CACHE_NAME = 'loeschstoff-academy-v6';
-=======
-const CACHE_NAME = 'loeschstoff-academy-v3';
->>>>>>> main
+const CACHE_NAME = 'loeschstoff-academy-v10';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -12,8 +8,13 @@ const ASSETS_TO_CACHE = [
   './data/defaultDocuments.js',
   './data/defaultCatalogs.js',
   './data/frageboegen.json',
+  './data/dokumente.json',
+  './data/einstellungen.json',
   './js/storage.js',
+  './js/storage-exports.js',
   './js/app.js',
+  './js/app-exports.js',
+  './js/pin-placeholders.js',
   './assets/app-logo.jpg',
   './assets/icon.svg',
   './assets/icon-192.png',

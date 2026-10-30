@@ -1,33 +1,96 @@
 /**
- * Standard-Dokumente für LÖSCHSTOFF ACADEMY
+ * Standard-Dokumente & Dienstvorschriften für LÖSCHSTOFF ACADEMY
  */
 
 window.DEFAULT_DOCUMENTS = [
+  {
+    "title": "Rechtsgrundlagen und Organisation",
+    "category": "Lehrgangsunterlage",
+    "description": "",
+    "url": "docs/MTA_Rechtsgrundlagen und Organisation.pdf",
+    "size": "",
+    "date": "2026-10-30",
+    "id": "doc_1793390145462"
+  },
+  {
+    "title": "pers. und besondere Schutzausrüstung",
+    "category": "Lehrgangsunterlage",
+    "description": "",
+    "url": "docs/MTA_Mindestausrüstung_persönliche_Schutzausrüstung.pdf",
+    "size": "",
+    "date": "2026-10-30",
+    "id": "doc_1793390118927"
+  },
+  {
+    "title": "Gerätekunde - Schläuche",
+    "category": "Lehrgangsunterlage",
+    "description": "",
+    "url": "docs/MTA_Gerätekunde Schläuche.pdf",
+    "size": "",
+    "date": "2026-10-30",
+    "id": "doc_1793390075652"
+  },
+  {
+    "title": "Fahrzeugkunde",
+    "category": "Lehrgangsunterlage",
+    "description": "",
+    "url": "docs/MTA_Fahrzeugkunde.pdf",
+    "size": "",
+    "date": "2026-10-30",
+    "id": "doc_1793389905958"
+  },
+  {
+    "title": "Brennen und Löschen",
+    "category": "Lehrgangsunterlage",
+    "description": "",
+    "url": "docs/MTA_Brennen und Löschen.pdf",
+    "size": "784 KB",
+    "date": "2026-10-30",
+    "id": "doc_1793389550327"
+  },
+  {
+    "title": "Geräte für die einfache Hilfeleistung",
+    "category": "Lehrgangsunterlage",
+    "description": "",
+    "url": "docs/MTA_05-7_Geräte für die einfache Hilfeleistung.pdf",
+    "size": "539 KB",
+    "date": "2026-10-30",
+    "id": "doc_1793389518085"
+  },
+  {
+    "title": "MTA- Rettungsgeräte",
+    "category": "Lehrgangsunterlage",
+    "description": "",
+    "url": "docs/MTA Rettungsgeräte.pdf",
+    "size": "1018 KB",
+    "date": "2026-10-30",
+    "id": "doc_1793389486900"
+  },
+  {
+    "title": "MTA - Löschgeräte",
+    "category": "Lehrgangsunterlage",
+    "description": "",
+    "url": "docs/MAT_Gerätekunde_Löschgeräte.pdf",
+    "size": "302 KB",
+    "date": "2026-10-30",
+    "id": "doc_1793389346716"
+  },
+  {
+    "title": "Feuerwehr Lernbar Bayern",
+    "category": "Sonstiges",
+    "description": "",
+    "url": "https://www.feuerwehr-lernbar.bayern/",
+    "size": "",
+    "date": "2026-10-30",
+    "id": "doc_1793389289880"
+  },
   {
     "id": "doc_fwdv3",
     "title": "FwDV 3 – Einheiten im Lösch- und Hilfeleistungseinsatz",
     "category": "Dienstvorschrift",
     "date": "2026-10-30",
-    "size": "1.2 MB",
+    "size": "701 KB",
     "description": "Grundlegende Feuerwehr-Dienstvorschrift für den Löscheinsatz und die Technische Hilfeleistung.",
-    "url": "docs/FwDV3.pdf"
-  },
-  {
-    "id": "doc_fwdv10",
-    "title": "FwDV 10 – Die tragbaren Leitern",
-    "category": "Dienstvorschrift",
-    "date": "2026-10-30",
-    "size": "850 KB",
-    "description": "Handhabung und Sicherheitsvorschriften für Steckleiter, Schiebleiter und Klappleiter.",
-    "url": "docs/FwDV10.pdf"
-  },
-  {
-    "id": "doc_bayfwg",
-    "title": "Bayerisches Feuerwehrgesetz (BayFwG)",
-    "category": "Gesetzestext",
-    "date": "2026-10-30",
-    "size": "620 KB",
-    "description": "Rechtliche Grundlagen über Organisation, Rechte und Pflichten der Feuerwehren in Bayern.",
-    "url": "docs/BayFwG.pdf"
+    "url": "docs/Feuerwehr-Dienstvorschrift 3.pdf"
   }
 ];
