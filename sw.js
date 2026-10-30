@@ -1,4 +1,8 @@
+<<<<<<< HEAD
+const CACHE_NAME = 'loeschstoff-academy-v6';
+=======
 const CACHE_NAME = 'loeschstoff-academy-v3';
+>>>>>>> main
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
